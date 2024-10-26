@@ -1,0 +1,38 @@
+{
+  "name": "@vii7/awesome-charts",
+  "version": "0.0.2",
+  "description": "A collection of awesome charts modules SVG Charts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "jest",
+    "build": "npm run build-modules && npm run build-main",
+    "build-modules": "npm run build-sankey",
+    "build-donut": "cd donut-chart && npm run build",
+    "build-sankey": "cd sankey-chart && npm run build",
+    "build-drill-down": "cd drill-down && npm run build",
+    "build-main": "webpack",
+    "publish:dist": "npm publish",
+    "clean": "rm -rf dist sankey-chart/dist"
+  },
+  "keywords": [
+    "chart",
+    "sankey",
+    "donut",
+    "awesome-chats"
+  ],
+  "author": "vii.ch",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.2.2",
+    "ts-loader": "^9.5.1",
+    "webpack": "^5.38.1",
+    "webpack-cli": "^4.7.2",
+
+    "domhandler": "^5.0.3",
+    "htmlparser2": "^9.1.0"
+  }
+}

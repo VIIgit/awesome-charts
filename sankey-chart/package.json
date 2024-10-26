@@ -1,0 +1,27 @@
+{
+  "name": "@vii7/awesome-sankey-chart",
+  "version": "0.0.2",
+  "description": "SVG Charts - Donut and Sankey",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc && webpack",
+    "publish:dist": "npm publish",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "chart",
+    "sankey",
+    "donut",
+    "awesome-chats"
+  ],
+  "author": "VII.ch",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.5.2",
+    "webpack": "^5.38.1",
+    "webpack-cli": "^4.7.2",
+    "ts-loader": "^9.2.3"
+  }
+}
