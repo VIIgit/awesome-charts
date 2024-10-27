@@ -3,7 +3,7 @@ name: Publish Package
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*' # Trigger only on version tags (e.g., v0.0.2)
 
 jobs:
   publish:
@@ -16,13 +16,19 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v2
         with:
-          node-version: '16' # Specify your Node.js version
-          registry-url: 'https://registry.npmjs.org'
+          node-version: '16' # Specify your preferred Node.js version
+          registry-url: 'https://registry.npmjs.org/' # npm registry URL
 
       - name: Install dependencies
         run: npm install
 
+      - name: Run Tests
+        run: npm test # Run tests to ensure code quality
+
+      - name: Build package
+        run: npm run build # Builds your modules and main distribution
+
       - name: Publish to npm
-        run: npm publish
+        run: npm run publish:dist # Publishes the built package from the dist folder
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Use npm token from GitHub Secrets
