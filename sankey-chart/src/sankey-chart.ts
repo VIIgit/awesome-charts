@@ -107,6 +107,7 @@ export default class SankeyChart {
   };
   private chartData?: ChartData;
   private selectedNodePositionY: number;
+  private SVG_NS = "http://www.w3.org/2000/svg";
 
   constructor(svgElement: any, customOptions?: CustomOptions) {
     this.options = {
@@ -318,7 +319,7 @@ export default class SankeyChart {
 
   renderNodes = (nodes: Node[], positionX: number, selectedNode?: Node, kind?: Title) => {
 
-    const svgGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const svgGroup = document.createElementNS(this.SVG_NS, "g");
 
     let overallY = this.options.topY;
     this.chartData?.getKinds
@@ -453,7 +454,7 @@ export default class SankeyChart {
       text.setAttribute("x", String(positionX + this.options.marginX));
       text.setAttribute("y", y.toString());
 
-      text.style.cursor = 'pointer';
+      //text.style.cursor = 'pointer';
 
       // Create tspan elements for each line of text
       const truncatedTitle = this.truncateName(node.title ? node.title : node.name, this.options.nameMaxLength);
@@ -476,7 +477,7 @@ export default class SankeyChart {
       }
 
       for (let i = 0; i < lines.length; i++) {
-        const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        const tspan = document.createElementNS(this.SVG_NS, "tspan");
         tspan.setAttribute("x", String(positionX + this.options.marginX));
         tspan.setAttribute("dy", "1.2em");
         tspan.textContent = lines[i];
@@ -524,7 +525,7 @@ export default class SankeyChart {
     return svgGroup;
   }
   createSvgText = (textContent: string, classNames: string[]) => {
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    const text = document.createElementNS(this.SVG_NS, "text");
     text.classList.add(...classNames.filter(className => className));
     text.textContent = textContent;
     return text;
@@ -536,11 +537,11 @@ export default class SankeyChart {
     const defaultColor = color || this.options.defaultNodeColor;
     const localNodePositions = JSON.parse(JSON.stringify(this.nodePositions));
 
-    const gText = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    const gPath = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const gText = document.createElementNS(this.SVG_NS, "g");
+    const gPath = document.createElementNS(this.SVG_NS, "g");
 
     relations?.forEach((link) => {
-      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      const g = document.createElementNS(this.SVG_NS, "g");
 
       const sourcePosition = localNodePositions[link.source.kind + '::' + link.source.name];
       const targetPosition = localNodePositions[link.target.kind + '::' + link.target.name];
@@ -621,7 +622,7 @@ export default class SankeyChart {
         text.setAttribute("x", String(targetPosition.x - this.options.marginY));
         text.setAttribute("y", String( targetPosition.targetY + (height|| 0 / 2) + 8));
         text.setAttribute("text-anchor", "end");
-        const tspanEnv = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        const tspanEnv = document.createElementNS(this.SVG_NS, "tspan");
         tspanEnv.textContent = analytics?.environment || '';
         text.appendChild(tspanEnv);
 
@@ -631,13 +632,13 @@ export default class SankeyChart {
 
         if (analytics?.errors ?? 0 > 0) {
           const errorRatio = (100 / (analytics?.traffic ?? 0) * (analytics?.errors ?? 0));
-          const tspanErr = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+          const tspanErr = document.createElementNS(this.SVG_NS, "tspan");
           tspanErr.setAttribute("fill", "red");
           tspanErr.textContent = ' ' + (errorRatio == 0 ? "(<0.01%)" : '(' + errorRatio.toFixed(2).toLocaleString() + '%)');
           text.appendChild(tspanErr);
         }
 
-        const tspan = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        const tspan = document.createElementNS(this.SVG_NS, "tspan");
         tspan.textContent = ' ' + analytics?.traffic.toLocaleString();
         text.appendChild(tspan);
         gText.appendChild(text);
@@ -657,7 +658,7 @@ export default class SankeyChart {
 //console.log(gPath instanceof Node); // Should return true
 
     
-//const gPathx = document.createElementNS("http://www.w3.org/2000/svg", "g");
+//const gPathx = document.createElementNS(this.SVG_NS, "g");
 //    this.svgElement.appendChild(gPathx);
     
     this.svgElement.appendChild(gPath);
@@ -672,7 +673,7 @@ export default class SankeyChart {
     const columnWidth = this.options.nodeColumnWith + this.options.nodeWidth;
     const kinds = this.chartData?.getKinds();
     this.selectedNodePositionY = -1;
-    const svgNodes = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    const svgNodes = document.createElementNS(this.SVG_NS, "g");
     if (kinds && kinds.length > 0) {
       kinds.forEach(kind => {
         svgNodes.appendChild(this.renderNodes(this.chartData?.getNodesByKind(kind.name) ?? [], this.options.leftX + columnWidth * column++, selectedNode, kind));
