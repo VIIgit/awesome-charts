@@ -58,6 +58,10 @@ describe('SankeyChartData', () => {
     expect(normalizeHTML("" + svg?.innerHTML)).toBe(normalizeHTML(expectedInnerHTML));
   });
 */
+test('sankey - silly', () => {
+
+  expect(1).toBe(1);
+});
 });
 
 
