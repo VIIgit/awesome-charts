@@ -4,6 +4,10 @@
   "description": "A collection of awesome charts modules SVG Charts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VIIgit/awesome-charts.git"
+  },
   "scripts": {
     "test": "jest",
     "build": "npm run build-modules && npm run build-main",
@@ -25,14 +29,16 @@
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.12",
+    "domhandler": "^5.0.3",
+    "htmlparser2": "^9.1.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "ts-jest": "^29.2.2",
     "ts-loader": "^9.5.1",
     "webpack": "^5.38.1",
-    "webpack-cli": "^4.7.2",
-
-    "domhandler": "^5.0.3",
-    "htmlparser2": "^9.1.0"
+    "webpack-cli": "^4.7.2"
+  },
+  "dependencies": {
+    "@vii7/awesome-charts": "^0.0.6"
   }
 }
