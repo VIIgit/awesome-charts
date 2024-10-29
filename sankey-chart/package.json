@@ -1,6 +1,6 @@
 {
   "name": "@vii7/awesome-sankey-chart",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "SVG Charts - Donut and Sankey",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
