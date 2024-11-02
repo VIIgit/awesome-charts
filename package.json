@@ -39,6 +39,6 @@
     "webpack-cli": "^4.7.2"
   },
   "dependencies": {
-    "@vii7/awesome-charts": "^0.0.6"
+    "@vii7/awesome-charts": "0.0.7"
   }
 }

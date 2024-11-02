@@ -81,6 +81,7 @@ export default class SankeyChart {
           dashArray: string;
         };
       };
+      sameKindIndentation: number;
     };
     selectedNode: {
       scale: number;
@@ -130,7 +131,8 @@ export default class SankeyChart {
           nonPROD: {
             dashArray: '10,1'
           }
-        }
+        },
+        sameKindIndentation: 20
       },
       selectedNode: {
         dropShadow: false,
@@ -357,6 +359,9 @@ export default class SankeyChart {
       }
     }
 
+
+    const useIndentation = (nodes.length > 0 && selectedNode && nodes[0].kind === selectedNode.kind);
+
     nodes.forEach((node, index) => {
       const linksHeight = node.height ?? 0;
 
@@ -366,18 +371,24 @@ export default class SankeyChart {
       const rectHeight = height + Math.max(linksHeight + 2 * this.options.marginY, this.options.nodeMinHeight + (this.options.renderKindAsColums ? 0 : 10) + (node.subtitle ? 10 : 0));
       const y = this.options.marginY + overallY;
       const color = node.color || this.options.defaultNodeColor;
-      let rectPositionX = positionX;
+      let posX = positionX;
+
+      let rectPositionWidth = this.options.nodeColumnWith;
       if (isSelected) {
         this.selectedNodePositionY = y;
         /*rectPositionX = positionX * 0.8;*/
+      }
+      if (useIndentation && index > 0) {
+        posX = posX + this.options.relation.sameKindIndentation;
+        rectPositionWidth = rectPositionWidth - this.options.relation.sameKindIndentation;
       }
 
 
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       const rectHover = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rectHover.setAttribute('x', rectPositionX.toString());
+      rectHover.setAttribute('x', posX.toString());
       rectHover.setAttribute('y', y.toString());
-      rectHover.setAttribute('width', this.options.nodeColumnWith.toString());
+      rectHover.setAttribute('width', rectPositionWidth.toString());
       rectHover.setAttribute('height', rectHeight.toString());
       rectHover.setAttribute('rx', "5");
       rectHover.setAttribute('ry', "5");
@@ -387,9 +398,9 @@ export default class SankeyChart {
       rectHover.setAttribute("opacity", "0");
       //rectHover.setAttribute('stroke-width', "1");
       //rectHover.setAttribute('stroke', this.options.selectedNode.borderColor);
-      
+
       const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', rectPositionX.toString());
+      rect.setAttribute('x', posX.toString());
       rect.setAttribute('y', y.toString());
       rect.setAttribute('width', this.options.nodeWidth.toString());
       rect.setAttribute('height', rectHeight.toString());
@@ -399,7 +410,7 @@ export default class SankeyChart {
 
       if (isSelected) {
         const rectShadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rectShadow.setAttribute('x', String(rectPositionX - 2));
+        rectShadow.setAttribute('x', String(posX - 2));
         rectShadow.setAttribute('y', String(y - 2));
         rectShadow.setAttribute('width', String(this.options.nodeWidth + 4));
         rectShadow.setAttribute('height', String(rectHeight + 4));
@@ -409,23 +420,23 @@ export default class SankeyChart {
         if (this.options.selectedNode.dropShadow) {
           rectShadow.setAttribute('fill', 'black');
           rectShadow.setAttribute('filter', 'url(#dropshadow)');
-          rectShadow.setAttribute("opacity", "0.2");          
+          rectShadow.setAttribute("opacity", "0.2");
         } else if (this.options.selectedNode.borderColor) {
           rectShadow.setAttribute('stroke-width', "2");
           rectShadow.setAttribute('stroke', this.options.selectedNode.borderColor);
           rectShadow.setAttribute('fill', 'none');
           rectShadow.setAttribute("opacity", "1");
         }
-    
+
         g.appendChild(rectShadow);
-/*        g.style.transform = 'scale(1.2)';
-        g.classList.add('selectedSvg');
-        */
+        /*        g.style.transform = 'scale(1.2)';
+                g.classList.add('selectedSvg');
+                */
       } else {
-        
+
       };
 
-      
+
       g.appendChild(rect);
 
       rectHover.style.cursor = 'pointer';
@@ -434,15 +445,15 @@ export default class SankeyChart {
       const cardinality = node.cardinality;
       if (cardinality) {
         if (cardinality.sourceCount ?? 0 > 0) {
-          const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED:'']);
-          sourceText.setAttribute("x", String(positionX + this.options.marginX - 6));
+          const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+          sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
           sourceText.setAttribute("y", String(y + rectHeight - 2));
           sourceText.setAttribute("fill", color);
           g.appendChild(sourceText);
         }
         if (cardinality.targetCount ?? 0 > 0) {
-          const sourceText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED:'']);
-          sourceText.setAttribute("x", String(positionX + this.options.marginX - 14));
+          const sourceText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+          sourceText.setAttribute("x", String(posX + this.options.marginX - 14));
           sourceText.setAttribute("y", String(y + rectHeight - 2));
           sourceText.setAttribute("fill", color);
           sourceText.setAttribute("text-anchor", "end");
@@ -450,8 +461,8 @@ export default class SankeyChart {
         }
       }
 
-      const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ?  this.className.SELECTED:'']);
-      text.setAttribute("x", String(positionX + this.options.marginX));
+      const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
+      text.setAttribute("x", String(posX + this.options.marginX));
       text.setAttribute("y", y.toString());
 
       //text.style.cursor = 'pointer';
@@ -478,7 +489,7 @@ export default class SankeyChart {
 
       for (let i = 0; i < lines.length; i++) {
         const tspan = document.createElementNS(this.SVG_NS, "tspan");
-        tspan.setAttribute("x", String(positionX + this.options.marginX));
+        tspan.setAttribute("x", String(posX + this.options.marginX));
         tspan.setAttribute("dy", "1.2em");
         tspan.textContent = lines[i];
         if (i === headlineIndex) {
@@ -515,9 +526,9 @@ export default class SankeyChart {
       svgGroup.appendChild(g);
 
       if (isSelected && !node?.placeHolder && this.contextMenuElement) {
-        svgGroup.appendChild(this.renderElipsisMenu(positionX, y));
+        svgGroup.appendChild(this.renderElipsisMenu(posX, y));
       }
-      this.nodePositions[node.kind + '::' + node.name] = { x: positionX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color };
+      this.nodePositions[node.kind + '::' + node.name] = { x: posX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color };
 
       overallY = overallY + rectHeight + this.options.nodeMarginY;
     });
@@ -531,7 +542,7 @@ export default class SankeyChart {
     return text;
   }
 
-  renderRelations = (relations: Relation[]|undefined, selectedNode: Node|undefined) => {
+  renderRelations = (relations: Relation[] | undefined, selectedNode: Node | undefined) => {
 
     const { name, kind, color } = selectedNode || {};
     const defaultColor = color || this.options.defaultNodeColor;
@@ -539,6 +550,7 @@ export default class SankeyChart {
 
     const gText = document.createElementNS(this.SVG_NS, "g");
     const gPath = document.createElementNS(this.SVG_NS, "g");
+
 
     relations?.forEach((link) => {
       const g = document.createElementNS(this.SVG_NS, "g");
@@ -585,10 +597,24 @@ export default class SankeyChart {
       }
 
       if (source.kind === target.kind) {
-        const point1X = sourcePosition.x + (this.options.nodeWidth / 2);
-        const point1Y = sourcePosition.y + sourcePosition.h;
-        const point2Y = targetPosition.y;
-        pathD = `M${point1X},${point1Y} ${point1X},${point2Y}`;
+
+        if (sourcePosition.index < targetPosition.index) {
+          const point1X = sourcePosition.x + (this.options.nodeWidth / 2);
+          const point1Y = sourcePosition.y + sourcePosition.h;
+          const point2X = targetPosition.x + (this.options.nodeWidth / 2);
+          const point2Y = targetPosition.y + (targetPosition.h / 2);
+
+          pathD = `M${point1X},${point1Y} C${point1X},${point2Y} ${point1X},${point2Y} ${point2X},${point2Y}`;
+
+        } else {
+          const point2X = sourcePosition.x + (this.options.nodeWidth / 2);
+          const point2Y = sourcePosition.y + (sourcePosition.h / 2);
+          const point1X = targetPosition.x + (this.options.nodeWidth / 2);
+          const point1Y = targetPosition.y + targetPosition.h;
+
+          pathD = `M${point1X},${point1Y} C${point1X},${point2Y} ${point1X},${point2Y} ${point2X},${point2Y}`;
+        }
+
         opacity = 0.8;
         strokeWidth = 2;
       } else {
@@ -620,7 +646,7 @@ export default class SankeyChart {
       if (analytics?.traffic ?? 0 > 0) {
         const text = this.createSvgText('', [this.className.RELATION]);
         text.setAttribute("x", String(targetPosition.x - this.options.marginY));
-        text.setAttribute("y", String( targetPosition.targetY + (height|| 0 / 2) + 8));
+        text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + 8));
         text.setAttribute("text-anchor", "end");
         const tspanEnv = document.createElementNS(this.SVG_NS, "tspan");
         tspanEnv.textContent = analytics?.environment || '';
@@ -654,13 +680,13 @@ export default class SankeyChart {
       path.setAttribute('opacity', String(opacity));
     });
 
-//    console.log(gPath); // Check if this outputs a valid node
-//console.log(gPath instanceof Node); // Should return true
+    //    console.log(gPath); // Check if this outputs a valid node
+    //console.log(gPath instanceof Node); // Should return true
 
-    
-//const gPathx = document.createElementNS(this.SVG_NS, "g");
-//    this.svgElement.appendChild(gPathx);
-    
+
+    //const gPathx = document.createElementNS(this.SVG_NS, "g");
+    //    this.svgElement.appendChild(gPathx);
+
     this.svgElement.appendChild(gPath);
     this.svgElement.appendChild(gText);
   }
