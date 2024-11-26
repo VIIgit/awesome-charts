@@ -1,5 +1,5 @@
-import { greet } from '../src';
 import { normalizeHTML } from './normalizeHTML';
+import { SankeyChartData, Node, Relation, SankeyChartDataOptions, BasicNode, IncludeKind } from '../src';
 
 test('createSankeyChart should work correctly', () => {
   const element = document.createElement('div');
@@ -10,13 +10,6 @@ test('createSankeyChart should work correctly', () => {
   expect(element.innerHTML).toContain(html);
 });
 
-test('greet ', () => {
-  const data = greet("John");
-  //SankeyChartData(element, data);
-  expect(data).toContain('John');
-});
-
-import { SankeyChartData, Node, Relation, SankeyChartDataOptions } from '../src';
 test('SankeyChart should be defined', () => {
   expect(SankeyChartData).toBeDefined();
 });
@@ -103,10 +96,10 @@ describe('SankeyChartData', () => {
   test('should throw error if node kind or name is empty', () => {
     expect(() => {
       sankeyChartData.selectNode({ kind: '', name: 'Node1' });
-    }).toThrow('Node kind is empty');
+    }).toThrow('Node must have kind and name');
     expect(() => {
       sankeyChartData.selectNode({ kind: 'type1', name: '' });
-    }).toThrow('Node name is empty');
+    }).toThrow('Node must have kind and name');
   });
 
   test('should filter nodes correctly based on relations', () => {
@@ -185,7 +178,7 @@ describe('init SankeyChartData', () => {
     ]
   };
 
-  const mockOptions = {
+  const mockOptions: SankeyChartDataOptions = {
     defaultColor: "gray",
     tagColorMap: {
       "A": "#ff0000",
@@ -194,13 +187,10 @@ describe('init SankeyChartData', () => {
     },
     kinds: [
       { name: 'consumer', title: 'Consumers' },
-      { name: 'consumer', title: 'Products' },
-      { name: 'proxy', title: 'Proxies', relatedTargetKinds: ['product'] }
+      { name: 'product', title: 'Products' },
+      { name: 'proxy', title: 'Proxies' }
     ],
-
-    kindRelations: {
-      'product': { relatedTargetKinds: ['product'] }
-    }
+    showRelatedKinds: true
   };
 
   let sankeyChartData: SankeyChartData;
@@ -244,7 +234,7 @@ describe('init SankeyChartData', () => {
   test('sankey - selectNode(): criteria is invalid', () => {
     const chartDataA = new SankeyChartData(mockData, mockOptions);
     expect(chartDataA.getKinds().length).toBe(3);
-    expect(() => chartDataA.selectNode({ kind: '', name: 'Product xxxx' })).toThrow('Node kind is empty');
+    expect(() => chartDataA.selectNode({ kind: '', name: 'Product xxxx' })).toThrow('Node must have kind and name');
     expect(chartDataA.getKinds().length).toBe(3);
   });
 
@@ -291,13 +281,19 @@ describe('init SankeyChartData', () => {
 
   test('sankey - selectNode(): criteria is invalid', () => {
     const chartDataA = new SankeyChartData(mockData, mockOptions);
-    expect(() => chartDataA.selectNode({ kind: '', name: 'Product xxxx' })).toThrow('Node kind is empty');
+    expect(chartDataA.getKinds().length).toBe(3);
+    expect(chartDataA.getNodes().length).toBe(19);
+    expect(() => chartDataA.selectNode({ kind: '', name: 'Product xxxx' })).toThrow('Node must have kind and name');
+    expect(chartDataA.getNodes().length).toBe(19);
   });
 
 
   test('sankey - selectNode(): criteria is invalid', () => {
     const chartDataA = new SankeyChartData(mockData, mockOptions);
-    expect(() => chartDataA.selectNode({ kind: 'product', name: '' })).toThrow('Node name is empty');
+    expect(chartDataA.getKinds().length).toBe(3);
+    expect(chartDataA.getNodes().length).toBe(19);
+    expect(() => chartDataA.selectNode({ kind: 'product', name: '' })).toThrow('Node must have kind and name');
+    expect(chartDataA.getNodes().length).toBe(19);
   });
 
   test('sankey - selectNode(): Product 4', () => {
@@ -317,20 +313,496 @@ describe('init SankeyChartData', () => {
       });
 
   });
+});
 
-  test('sankey - selectNode(): Consumer 1', () => {
-    const chartDataA = new SankeyChartData(mockData, mockOptions);
-    const result = chartDataA.selectNode({ kind: 'consumer', name: 'Consumer 1' });
-    expect(result).toStrictEqual(
-      {
-        "kind": "consumer", "name": "Consumer 1", "color": "#ff0000",
-        "tags": ["A", "B"], "cardinality": { "sourceCount": 3, "targetCount": 0, "refs": 0 }, hasRelatedSourceKinds: false, "height": 183
-      }
-    );
-    const nodes = chartDataA.getNodes();
-    expect(nodes).toHaveLength(7);
+describe('SankeyChartData set options', () => {
+
+  const mockData = {
+    "name": "MockData",
+    "nodes": [
+      { "kind": "product", "name": "Product 1" },
+      { "kind": "product", "name": "Product 2" },
+      { "kind": "product", "name": "Product 3" },
+      { "kind": "product", "name": "Product 4" },
+      { "kind": "product", "name": "Product 5" },
+      { "kind": "consumer", "name": "Consumer 1" },
+      { "kind": "consumer", "name": "Consumer 2" },
+      { "kind": "consumer", "name": "Consumer 3" },
+      { "kind": "consumer", "name": "Consumer 4" },
+      { "kind": "proxy", "name": "Proxy A" },
+      { "kind": "proxy", "name": "Proxy B" },
+      { "kind": "proxy", "name": "Proxy C" },
+      { "kind": "proxy", "name": "Proxy D" }
+    ],
+    "relations": [
+      { "source": { "kind": "consumer", "name": "Consumer 1" }, "target": { "kind": "product", "name": "Product 3" } },
+      { "source": { "kind": "consumer", "name": "Consumer 4" }, "target": { "kind": "product", "name": "Product 3" } },
+      { "source": { "kind": "product", "name": "Product 3" }, "target": { "kind": "proxy", "name": "Proxy B" } },
+      { "source": { "kind": "product", "name": "Product 3" }, "target": { "kind": "proxy", "name": "Proxy A" } },
+      { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy A" } },
+      { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy B" } },
+      { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy C" } },
+      { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy D" } },
+      { "source": { "kind": "product", "name": "Product 2" }, "target": { "kind": "proxy", "name": "Proxy D" } }
+    ]
+  };
+
+  const mockRootOptions: SankeyChartDataOptions = {
+    defaultColor: "blue",
+    kinds: [
+      { name: 'consumer', title: 'Consumers' },
+      { name: 'product', title: 'Products' },
+      { name: 'proxy', title: 'Proxies' }
+    ],
+    showRelatedKinds: true
+  };
+
+  describe('set options A - relatedSourceKinds at proxy, showRelatedKinds', () => {
+    let sankeyChartData: SankeyChartData;
+
+    beforeEach(() => {
+      sankeyChartData = new SankeyChartData(mockData, mockRootOptions);
+      const mockOptions: SankeyChartDataOptions = {
+        defaultColor: "gray",
+        kinds: [
+          { name: 'consumer', title: 'Consumers' },
+          { name: 'product', title: 'Products' },
+          { name: 'proxy', title: 'Proxies' }
+        ],
+        showRelatedKinds: true
+      };
+      sankeyChartData.setOptions(mockOptions);
+    });
+
+    test('set options A - relatedSourceKinds - Consumer 1', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'consumer', name: 'Consumer 1' });
+      expect(result).toStrictEqual(
+        {
+          "kind": "consumer", "name": "Consumer 1", "color": "gray",
+          "cardinality": { "sourceCount": 1, "targetCount": 0, "refs": 0 }, hasRelatedSourceKinds: false, "height": 15
+        }
+      );
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        },
+        {
+          name: "Consumer 1",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options A - sankey - selectNode():  Product 3', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'product', name: 'Product 3' });
+
+      expect(result).toStrictEqual(
+        {
+          kind: "product", "name": "Product 3", "color": "gray",
+          cardinality: { "sourceCount": 2, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        }, {
+          name: "Consumer 1",
+          kind: "consumer",
+        },
+        {
+          name: "Consumer 4",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options A - sankey - selectNode(): Proxy A', () => {
+
+      const result = sankeyChartData.selectNode({ kind: "proxy", name: "Proxy A" });
+      expect(result).toStrictEqual(
+        {
+          kind: "proxy", name: "Proxy A", "color": "gray",
+          cardinality: { "sourceCount": 0, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        { "name": "Product 3", "kind": "product" },
+        { "name": "Product 5", "kind": "product" },
+        { "name": "Proxy A", "kind": "proxy" }];
+      expect(results).toStrictEqual(nodes);
+    });
   });
 
+  describe('set options B - relatedSourceKinds at proxy, showRelatedKinds=false, relatedSourceKinds=Products', () => {
+    let sankeyChartData: SankeyChartData;
+    const mockData = {
+      "name": "MockData",
+      "nodes": [
+        { "kind": "product", "name": "Product 1" },
+        { "kind": "product", "name": "Product 2" },
+        { "kind": "product", "name": "Product 3" },
+        { "kind": "product", "name": "Product 4" },
+        { "kind": "product", "name": "Product 5" },
+        { "kind": "consumer", "name": "Consumer 1" },
+        { "kind": "consumer", "name": "Consumer 2" },
+        { "kind": "consumer", "name": "Consumer 3" },
+        { "kind": "consumer", "name": "Consumer 4" },
+        { "kind": "proxy", "name": "Proxy A" },
+        { "kind": "proxy", "name": "Proxy B" },
+        { "kind": "proxy", "name": "Proxy C" },
+        { "kind": "proxy", "name": "Proxy D" }
+      ],
+      "relations": [
+        { "source": { "kind": "consumer", "name": "Consumer 1" }, "target": { "kind": "product", "name": "Product 3" } },
+        { "source": { "kind": "consumer", "name": "Consumer 4" }, "target": { "kind": "product", "name": "Product 3" } },
+        { "source": { "kind": "product", "name": "Product 3" }, "target": { "kind": "proxy", "name": "Proxy B" } },
+        { "source": { "kind": "product", "name": "Product 3" }, "target": { "kind": "proxy", "name": "Proxy A" } },
+        { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy A" } },
+        { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy B" } },
+        { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy C" } },
+        { "source": { "kind": "product", "name": "Product 5" }, "target": { "kind": "proxy", "name": "Proxy D" } },
+        { "source": { "kind": "product", "name": "Product 2" }, "target": { "kind": "proxy", "name": "Proxy D" } }
+      ]
+    };
+
+    const mockOptions: SankeyChartDataOptions = {
+      defaultColor: "gray",
+      kinds: [
+        { name: 'consumer', title: 'Consumers' },
+        { name: 'product', title: 'Products' },
+        { name: 'proxy', title: 'Proxies' }
+      ],
+      showRelatedKinds: false
+    };
+
+    beforeEach(() => {
+      sankeyChartData = new SankeyChartData(mockData, mockRootOptions);
+      sankeyChartData.setOptions(mockOptions);
+    });
+
+    test('set options B - relatedSourceKinds - Consumer 1', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'consumer', name: 'Consumer 1' });
+      expect(result).toStrictEqual(
+        {
+          "kind": "consumer", "name": "Consumer 1", "color": "gray",
+          "cardinality": { "sourceCount": 1, "targetCount": 0, "refs": 0 }, hasRelatedSourceKinds: false, "height": 15
+        }
+      );
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        },
+        {
+          name: "Consumer 1",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options B - sankey - selectNode():  Product 3', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'product', name: 'Product 3' });
+      console.log(JSON.stringify(result));
+      expect(result).toStrictEqual(
+        {
+          kind: "product", "name": "Product 3", "color": "gray",
+          cardinality: { "sourceCount": 2, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        }, {
+          name: "Consumer 1",
+          kind: "consumer",
+        },
+        {
+          name: "Consumer 4",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options B - sankey - selectNode(): Proxy A', () => {
+
+      const result = sankeyChartData.selectNode({ kind: "proxy", name: "Proxy A" });
+      console.log(JSON.stringify(result));
+      const x = JSON.stringify(result);
+      expect(result).toStrictEqual(
+        {
+          kind: "proxy", name: "Proxy A", "color": "gray",
+          cardinality: { "sourceCount": 0, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        { "name": "Product 3", "kind": "product" },
+        { "name": "Product 5", "kind": "product" },
+        { "name": "Proxy A", "kind": "proxy" }];
+      expect(results).toStrictEqual(nodes);
+    });
+  });
+
+  describe('set options C - relatedSourceKinds at proxy, showRelatedKinds=false', () => {
+    let sankeyChartData: SankeyChartData;
+
+
+    const mockOptions: SankeyChartDataOptions = {
+      defaultColor: "gray",
+      kinds: [
+        { name: 'consumer', title: 'Consumers' },
+        { name: 'product', title: 'Products' },
+        { name: 'proxy', title: 'Proxies' }
+      ],
+      showRelatedKinds: false
+    };
+
+    beforeEach(() => {
+      sankeyChartData = new SankeyChartData(mockData, mockRootOptions);
+
+      sankeyChartData.setOptions(mockOptions);
+    });
+
+
+    test('set options C - relatedSourceKinds - Consumer 1', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'consumer', name: 'Consumer 1' });
+      expect(result).toStrictEqual(
+        {
+          "kind": "consumer", "name": "Consumer 1", "color": "gray",
+          "cardinality": { "sourceCount": 1, "targetCount": 0, "refs": 0 }, hasRelatedSourceKinds: false, "height": 15
+        }
+      );
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        },
+        {
+          name: "Consumer 1",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options C - sankey - selectNode():  Product 3', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'product', name: 'Product 3' });
+      console.log(JSON.stringify(result));
+      expect(result).toStrictEqual(
+        {
+          kind: "product", "name": "Product 3", "color": "gray",
+          cardinality: { "sourceCount": 2, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        }, {
+          name: "Consumer 1",
+          kind: "consumer",
+        },
+        {
+          name: "Consumer 4",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+
+      expect(results).toStrictEqual(nodes);
+
+    });
+
+    test('set options C - sankey - selectNode(): Proxy A', () => {
+
+      const result = sankeyChartData.selectNode({ kind: "proxy", name: "Proxy A" });
+      console.log(JSON.stringify(result));
+      const x = JSON.stringify(result);
+      expect(result).toStrictEqual(
+        {
+          kind: "proxy", name: "Proxy A", "color": "gray",
+          cardinality: { "sourceCount": 0, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        { "name": "Product 3", "kind": "product" },
+        { "name": "Product 5", "kind": "product" },
+        { "name": "Proxy A", "kind": "proxy" }];
+      expect(results).toStrictEqual(nodes);
+    });
+  });
+
+  describe('set options D - relatedSourceKinds at proxy, showRelatedKinds', () => {
+    let sankeyChartData: SankeyChartData;
+
+    beforeEach(() => {
+      sankeyChartData = new SankeyChartData(mockData, mockRootOptions);
+      const mockOptions: SankeyChartDataOptions = {
+        defaultColor: "gray",
+        kinds: [
+          { name: 'consumer', title: 'Consumers' },
+          { name: 'product', title: 'Products', includeAlternative: IncludeKind.WITH_SAME_TARGET },
+          { name: 'proxy', title: 'Proxies' }
+        ],
+        showRelatedKinds: true
+      };
+      sankeyChartData.setOptions(mockOptions);
+    });
+
+    test('set options D - relatedSourceKinds - Consumer 1', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'consumer', name: 'Consumer 1' });
+      expect(result).toStrictEqual(
+        {
+          "kind": "consumer", "name": "Consumer 1", "color": "gray",
+          "cardinality": { "sourceCount": 1, "targetCount": 0, "refs": 0 }, hasRelatedSourceKinds: false, "height": 15
+        }
+      );
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        },
+        {
+          name: "Consumer 1",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options D - sankey - selectNode():  Product 3', () => {
+
+      const result = sankeyChartData.selectNode({ kind: 'product', name: 'Product 3' });
+      expect(result).toStrictEqual(
+        {
+          kind: "product", "name": "Product 3", "color": "gray", "height": 30, "hasRelatedSourceKinds": true,
+          cardinality: { "sourceCount": 2, "targetCount": 2, "refs": 0 }
+        }
+      );
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        {
+          name: "Product 3",
+          kind: "product",
+        }, {
+          name: "Product 5",
+          kind: "product",
+        }, {
+          name: "Consumer 1",
+          kind: "consumer",
+        },
+        {
+          name: "Consumer 4",
+          kind: "consumer",
+        }, {
+          name: "Proxy A",
+          kind: "proxy",
+        }, {
+          name: "Proxy B",
+          kind: "proxy",
+        }];
+
+      expect(results).toStrictEqual(nodes);
+    });
+
+    test('set options D - sankey - selectNode(): Proxy A', () => {
+
+      const result = sankeyChartData.selectNode({ kind: "proxy", name: "Proxy A" });
+      expect(result).toStrictEqual(
+        {
+          kind: "proxy", name: "Proxy A", "color": "gray",
+          cardinality: { "sourceCount": 0, "targetCount": 2, "refs": 0 }, "height": 30, "hasRelatedSourceKinds": false
+        }
+      );
+
+      const nodes = mapKindAndName(sankeyChartData.getNodes());
+      console.log(JSON.stringify(mapKindAndName(nodes)));
+      const results = [
+        { "name": "Product 3", "kind": "product" },
+        { "name": "Product 5", "kind": "product" },
+        { "name": "Proxy A", "kind": "proxy" }];
+      expect(results).toStrictEqual(nodes);
+    });
+  });
 
 });
 
@@ -379,7 +851,8 @@ describe('init SankeyChartData and append data', () => {
 
     expect(selectedNode).toStrictEqual(
       {
-        "kind": "product", "name": "Product 2", "color": "orange", "cardinality": { "sourceCount": 199, "targetCount": 100, "fetchMore": true, "refs": 0 }, "height": 15,
+        "kind": "product", "name": "Product 2", "color": "orange",
+        "cardinality": { "fetchMore": true, "sourceCount": 199, "targetCount": 100, "refs": 0 }, "height": 15,
         "hasRelatedSourceKinds": false
       }
     );
@@ -394,8 +867,15 @@ describe('init SankeyChartData and append data', () => {
     const resultAfter = sankeyChartData.selectedNode;
 
     expect(resultAfter).toStrictEqual(
-      { "kind": "product", "name": "Product 2", "color": "orange", "hasRelatedSourceKinds": false, "cardinality": { "sourceCount": 2, "targetCount": 1, "refs": 0 }, "height": 30 }
+      {
+        "kind": "product", "name": "Product 2", "color": "orange", "hasRelatedSourceKinds": false,
+        "cardinality": { "sourceCount": 2, "targetCount": 1, "refs": 0 }, "height": 30
+      }
     );
   });
 
 });
+
+const mapKindAndName = function (nodes: Node[]): BasicNode[] {
+  return nodes.map(node => { return { name: node.name, kind: node.kind } })
+}

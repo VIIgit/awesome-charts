@@ -1,30 +1,31 @@
 const path = require('path');
+const { merge } = require("webpack-merge");
+const TerserPlugin = require("terser-webpack-plugin");
+const devConfig = require("./webpack.dev.config");
 
-module.exports = {
+module.exports = merge(devConfig, {
 
-
-  mode: 'development',
-  devtool: 'inline-source-map',  // Enable inline source maps for easier debugging
-  // Other configurations
-  
-  entry: './src/index.ts',
+  mode: 'production',
+  devtool: false,
   output: {
-    filename: 'bundle.js',
-    path: path.resolve(__dirname, 'dist'),
-    library: 'VIISankeyChart',
-    libraryTarget: 'umd',
-    globalObject: 'this'
+    path: path.resolve(__dirname, "dist/bundled"),
+    filename: "[name].bundle.min.js", // Minimized bundle output
+    library: {
+      name: "SankeyChartLibrary",
+      type: "umd"
+    }
   },
-  resolve: {
-    extensions: ['.ts', '.js']
-  },
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        use: 'ts-loader',
-        exclude: /node_modules/
-      }
+  optimization: {
+    minimize: true, // Enable minification
+    minimizer: [
+      new TerserPlugin({
+        terserOptions: {
+          format: {
+            comments: false // Remove comments in the minimized version
+          }
+        },
+        extractComments: false // Prevent generating separate comment files
+      })
     ]
   }
-};
+});

@@ -1,15 +1,15 @@
 {
   "compilerOptions": {
     "target": "ES6",
-    "module": "commonjs",
-
-
-
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist"
+    "module": "ES6",
+    "outDir": "./dist",
+    "declaration": true, // Generate `.d.ts` files for type declarations
+    "emitDeclarationOnly": false, // Emit both `.js` and `.d.ts` files
+    "strict": true, // Turns on strict type-checking for more robust code.
+    "esModuleInterop": true,  // Eases the use of CommonJS modules with ES module syntax.
+    "skipLibCheck": true, // Speeds up builds by ignoring type errors in declaration files.
+    "forceConsistentCasingInFileNames": true, // Prevents file import errors due to inconsistent casing.
+    "removeComments": true // Remove comments for cleaner output
   },
   "include": ["src/**/*", "__test__/*"]
 }

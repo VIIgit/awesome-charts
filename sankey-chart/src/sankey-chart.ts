@@ -1,6 +1,5 @@
 import { EventHandler } from './event-handler';
-//import { SankeyChartData as ChartData, Node, Relation, SankeyChartDataOptions } from './sankey-chart-data';
-import { SankeyChartData as ChartData, Title, Kind, Relation, Node, Analytics, BasicNode } from './sankey-chart-data';
+import { SankeyChartData as ChartData, Kind, Relation, Node, Analytics } from './sankey-chart-data';
 
 interface CustomOptions {
   nodeWidth?: number;
@@ -28,38 +27,7 @@ interface CustomOptions {
   rootCharacter?: string;
 }
 
-
-
-/*
-
-interface Node {
-  name: string;
-  kind: string;
-  color?: string;
-  title?: string;
-  subtitle?: string;
-  tags?: string[];
-  height: number;
-  cardinality?: {
-    sourceCount: number;
-    targetCount: number;
-    refs: number;
-    fetchMore?: boolean;
-  };
-  placeHolder?: boolean;
-}
-
-interface ChartData {
-  getSelectedNode: () => Node;
-  getNodes: () => Node[];
-  getNodesByKind: (kind: string) => Node[];
-  getRelations: () => any[];
-  getKinds: () => { name: string; title?: string; color?: string }[];
-  selectNode: (node: Node) => void;
-  getTitle?: () => { name: string; color?: string };
-}*/
-
-export default class SankeyChart {
+class SankeyChart {
   private options: {
     nodeWidth: number;
     nodeMinHeight: number;
@@ -319,7 +287,7 @@ export default class SankeyChart {
     return target;
   }
 
-  renderNodes = (nodes: Node[], positionX: number, selectedNode?: Node, kind?: Title) => {
+  renderNodes = (nodes: Node[], positionX: number, selectedNode?: Node, kind?: Kind) => {
 
     const svgGroup = document.createElementNS(this.SVG_NS, "g");
 
@@ -712,7 +680,5 @@ export default class SankeyChart {
     this.updateHeight();
   }
 }
-
-export {
-  SankeyChart, CustomOptions
-};
+export default SankeyChart;
+export {SankeyChart, CustomOptions};

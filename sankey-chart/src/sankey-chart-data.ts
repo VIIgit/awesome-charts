@@ -1,9 +1,10 @@
 interface Cardinality {
   sourceCount?: number;
   targetCount?: number;
-  fetchMore?: boolean,
-  refs: number
-};
+  fetchMore?: boolean;
+  refs: number;
+}
+
 interface Node {
   kind: string;
   name: string;
@@ -30,14 +31,17 @@ interface Data {
   relations?: Relation[];
 }
 
-interface BasicNode { kind: string; name: string }
-;
+interface BasicNode {
+  kind: string;
+  name: string;
+}
+
 interface Analytics {
   traffic: number;
   drillDown?: BasicNode[];
   environment?: string;
   errors?: number;
-};
+}
 
 interface Relation {
   source: Node;
@@ -46,7 +50,9 @@ interface Relation {
   height?: number;
   environment?: string;
 }
-
+enum IncludeKind{
+  WITH_SAME_TARGET= "WITH_SAME_TARGET"
+}
 interface SankeyChartDataOptions {
   noTag?: string;
   noTagSuffixCharacter?: string;
@@ -54,17 +60,17 @@ interface SankeyChartDataOptions {
   trafficLog10Factor?: number;
   defaultColor?: string;
   tagColorMap?: { [key: string]: string };
-  kinds: { name: string; title?: string; relatedSourceKinds?: string[] }[];
+  kinds: KindMeta[];
   showRelatedKinds?: boolean;
 }
 
 interface Kind {
   name: string;
   title?: string;
-}
-interface Title extends Kind {
   color?: string;
-  /*relatedSourceKinds?: string[]*/
+}
+interface KindMeta extends Kind {
+  includeAlternative?: IncludeKind;
 }
 
 class SankeyChartData {
@@ -74,7 +80,7 @@ class SankeyChartData {
   height: number;
   originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[] };
   nodesByKinds: { [key: string]: Node[] };
-  title?: Title;
+  title?: KindMeta;
   options: SankeyChartDataOptions;
 
   constructor(data: { name: string; color?: string; nodes?: Node[]; relations?: Relation[] }, options: SankeyChartDataOptions) {
@@ -98,22 +104,28 @@ class SankeyChartData {
     this.setOptions(options);
   }
 
-  setOptions(options: SankeyChartDataOptions) {
-    this.options = { ...this.options, ...options };
+  initialize() {
     this.initializeSortRelations();
     this.initializeRelationsInfo();
     this.sortNodes(this.nodes);
-    const resetNode = this.selectedNode;
+  }
+
+  resetColors() {
+    this.nodes.forEach(node => delete node['color']);
+  }
+  setOptions(options: SankeyChartDataOptions) {
+    this.resetColors();
+    this.options = { ...this.options, ...options };
+    this.initialize();
+    const previousNode = this.selectedNode;
     this.selectedNode = undefined;
-    this.selectNode(resetNode);
+    this.selectNode(previousNode);
   }
 
   appendData(data: { nodes: Node[]; relations: Relation[] }, selectedNode?: Node) {
     this.selectedNode = undefined;
     this.mergeData(this.originalData, data);
-    this.initializeSortRelations();
-    this.initializeRelationsInfo();
-    this.sortNodes(this.nodes);
+    this.initialize();
     this.selectNode(selectedNode);
   }
 
@@ -137,11 +149,11 @@ class SankeyChartData {
     return filteredKinds.map(kind => ({ name: kind }));
   }
 
-  getTitle(): Title | undefined {
+  getTitle(): KindMeta | undefined {
     return this.title;
   }
 
-  setTitle(title?: Title) {
+  setTitle(title?: KindMeta) {
     this.title = title ? { title: title.title, name: title.name, color: title.color } : undefined;
   }
 
@@ -150,9 +162,6 @@ class SankeyChartData {
   }
 
   selectNode(node?: Node): Node | undefined {
-    /*if (!node) {
-      return undefined;
-    }*/
     const groupByKind = (nodes: Node[]) => {
       const dataByKinds: { [key: string]: Node[] } = {};
       nodes.forEach(node => {
@@ -177,25 +186,23 @@ class SankeyChartData {
       this.nodesByKinds = groupByKind(this.nodes);
       this.updateRelationWeights(this.nodes, this.dependencies.relations);
       this.selectedNode = undefined;
-    } else if (!node.kind) {
-      throw new Error('Node kind is empty');
-    } else if (!node.name) {
-      throw new Error('Node name is empty');
+    } else if (!node.kind || !node.name) {
+      throw new Error('Node must have kind and name');
     } else if (this.selectedNode && node.name === this.selectedNode.name && node.kind === this.selectedNode.kind) {
       return this.selectedNode;
     } else {
       this.selectedNode = this.originalData.nodes.find(item => item.name === node.name && item.kind === node.kind);
 
       if (this.selectedNode) {
-        const focus = this.options.kinds.find(kind => kind.name === this.selectedNode?.kind);
-        if (focus?.relatedSourceKinds) {
+        const selectedKind = this.options.kinds.find(kind => kind.name === this.selectedNode?.kind);
+        if (selectedKind?.includeAlternative) {
           this.selectedNode['hasRelatedSourceKinds'] = true;
         } else {
           delete this.selectedNode['hasRelatedSourceKinds'];
         }
-        this.selectedNode['hasRelatedSourceKinds'] = focus?.relatedSourceKinds ? true : false;
+        this.selectedNode['hasRelatedSourceKinds'] = selectedKind?.includeAlternative ? true : false;
         if (this.options.showRelatedKinds) {
-          this.dependencies = this.filterDependencies(this.selectedNode, focus?.relatedSourceKinds);
+          this.dependencies = this.filterDependencies(this.selectedNode, selectedKind);
         } else {
           this.dependencies = this.filterDependencies(this.selectedNode);
         }
@@ -331,7 +338,7 @@ class SankeyChartData {
     return dataArray.find(item => item.name === name);
   }
 
-  filterDependencies(selectedNode: Node, relatedSourceKinds?: string[]): { relations: Relation[]; hasRelatedSourceKinds: boolean } {
+  filterDependencies(selectedNode: Node, selectedKind?: KindMeta): { relations: Relation[]; hasRelatedSourceKinds: boolean } {
     let relatedRelations: Relation[] = [];
     const targetRelations = this.originalData.relations.filter(relation => {
       return relation.source.kind === selectedNode.kind && relation.source.name === selectedNode.name;
@@ -342,11 +349,11 @@ class SankeyChartData {
       return targetKeys.includes(relation.source.kind + '::' + relation.source.name);
     });
 
-    if (relatedSourceKinds) {
+    if (selectedKind?.includeAlternative) {
       const relatedKindKeys = [...new Set(targetRelations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`))];
 
       relatedRelations = this.originalData.relations.filter(relation => {
-        return relatedKindKeys.includes(`${relation.target.kind}::${relation.target.name}`) && relatedSourceKinds.includes(relation.source.kind);
+        return relatedKindKeys.includes(`${relation.target.kind}::${relation.target.name}`) && selectedKind.name === relation.source.kind;
       });
     }
 
@@ -450,4 +457,4 @@ class SankeyChartData {
     return originData;
   }
 }
-export { SankeyChartData, Node, Relation, SankeyChartDataOptions, Kind, Title, Analytics, BasicNode };
+export { SankeyChartData, Node, Relation, SankeyChartDataOptions, Kind, Analytics, BasicNode, IncludeKind };
