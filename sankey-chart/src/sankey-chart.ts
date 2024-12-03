@@ -327,9 +327,6 @@ class SankeyChart {
       }
     }
 
-
-    const useIndentation = (nodes.length > 0 && selectedNode && nodes[0].kind === selectedNode.kind);
-
     nodes.forEach((node, index) => {
       const linksHeight = node.height ?? 0;
 
@@ -346,11 +343,11 @@ class SankeyChart {
         this.selectedNodePositionY = y;
         /*rectPositionX = positionX * 0.8;*/
       }
-      if (useIndentation && index > 0) {
+
+      if (node.hasRelatedSourceOfSameKind) {
         posX = posX + this.options.relation.sameKindIndentation;
         rectPositionWidth = rectPositionWidth - this.options.relation.sameKindIndentation;
       }
-
 
       const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
       const rectHover = document.createElementNS('http://www.w3.org/2000/svg', 'rect');

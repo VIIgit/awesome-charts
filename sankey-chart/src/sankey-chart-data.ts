@@ -17,7 +17,9 @@ interface Node {
   placeHolder?: boolean;
   cardinality?: Cardinality;
   height?: number;
-  hasRelatedSourceKinds?: boolean;
+  hasRelatedSourceOfOtherKinds?: boolean;
+  hasRelatedSourceOfSameKind?: boolean; // used for indentation
+  hasRelationsOfSameKinds?: boolean;
 }
 
 interface Data {
@@ -50,8 +52,8 @@ interface Relation {
   height?: number;
   environment?: string;
 }
-enum IncludeKind{
-  WITH_SAME_TARGET= "WITH_SAME_TARGET"
+enum IncludeKind {
+  WITH_SAME_TARGET = "WITH_SAME_TARGET"
 }
 interface SankeyChartDataOptions {
   noTag?: string;
@@ -62,6 +64,7 @@ interface SankeyChartDataOptions {
   tagColorMap?: { [key: string]: string };
   kinds: KindMeta[];
   showRelatedKinds?: boolean;
+  selectAndFilter?: boolean;
 }
 
 interface Kind {
@@ -76,7 +79,7 @@ interface KindMeta extends Kind {
 class SankeyChartData {
   selectedNode?: Node;
   nodes: Node[];
-  dependencies: { relations: Relation[]; hasRelatedSourceKinds: boolean };
+  dependencies: { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean; };
   height: number;
   originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[] };
   nodesByKinds: { [key: string]: Node[] };
@@ -86,7 +89,7 @@ class SankeyChartData {
   constructor(data: { name: string; color?: string; nodes?: Node[]; relations?: Relation[] }, options: SankeyChartDataOptions) {
     this.selectedNode = undefined;
     this.nodes = [];
-    this.dependencies = { relations: [], hasRelatedSourceKinds: false };
+    this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
     this.height = 0;
     this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
     this.nodesByKinds = {};
@@ -99,7 +102,8 @@ class SankeyChartData {
       defaultColor: "orange",
       tagColorMap: {},
       kinds: [],
-      showRelatedKinds: false
+      showRelatedKinds: false,
+      selectAndFilter: true
     };
     this.setOptions(options);
   }
@@ -111,13 +115,24 @@ class SankeyChartData {
   }
 
   resetColors() {
-    this.nodes.forEach(node => delete node['color']);
+    if (this.options.tagColorMap) {
+      const tags = Object.keys(this.options.tagColorMap);
+      this.nodes.forEach(node => {
+        const hasSome = tags.some(tag => node.tags?.includes(tag));
+        if (hasSome) {
+          delete node['color'];
+        }
+      });
+    }
+    else {
+      this.nodes.forEach(node => delete node['color']);
+    }
   }
   setOptions(options: SankeyChartDataOptions) {
     this.resetColors();
     this.options = { ...this.options, ...options };
-    this.initialize();
     const previousNode = this.selectedNode;
+    this.initialize();
     this.selectedNode = undefined;
     this.selectNode(previousNode);
   }
@@ -171,7 +186,7 @@ class SankeyChartData {
         dataByKinds[node.kind].push(node);
       });
       for (const kind in dataByKinds) {
-        if (node && kind === node.kind) {
+        if (this.options.selectAndFilter && node && kind === node.kind) {
           dataByKinds[kind].sort((a, b) => a.name === node.name ? -1 : (b.name === node.name ? 1 : a.name.localeCompare(b.name)));
         } else {
           dataByKinds[kind].sort((a, b) => a.name.localeCompare(b.name));
@@ -196,18 +211,24 @@ class SankeyChartData {
       if (this.selectedNode) {
         const selectedKind = this.options.kinds.find(kind => kind.name === this.selectedNode?.kind);
         if (selectedKind?.includeAlternative) {
-          this.selectedNode['hasRelatedSourceKinds'] = true;
+          this.selectedNode['hasRelatedSourceOfOtherKinds'] = true;
         } else {
-          delete this.selectedNode['hasRelatedSourceKinds'];
+          delete this.selectedNode['hasRelatedSourceOfOtherKinds'];
         }
-        this.selectedNode['hasRelatedSourceKinds'] = selectedKind?.includeAlternative ? true : false;
-        if (this.options.showRelatedKinds) {
-          this.dependencies = this.filterDependencies(this.selectedNode, selectedKind);
-        } else {
-          this.dependencies = this.filterDependencies(this.selectedNode);
+        this.selectedNode['hasRelatedSourceOfOtherKinds'] = selectedKind?.includeAlternative ? true : false;
+        if (this.options.selectAndFilter) {
+          if (this.options.showRelatedKinds) {
+            this.dependencies = this.filterDependencies(this.selectedNode, selectedKind);
+          } else {
+            this.dependencies = this.filterDependencies(this.selectedNode);
+          }
+          this.nodes = this.filterNodes(this.dependencies.relations);
+          this.nodes.forEach(node => {
+            node.hasRelatedSourceOfSameKind = this.dependencies.relations.find(relation => relation.target.kind === node.kind && relation.target.name === node.name && relation.source.kind === node.kind) ? true : false;
+          });
+
+          this.updateRelationWeights(this.nodes, this.dependencies.relations, this.selectedNode);
         }
-        this.nodes = this.filterNodes(this.dependencies.relations);
-        this.updateRelationWeights(this.nodes, this.dependencies.relations, this.selectedNode);
       } else {
         this.nodes = [];
       }
@@ -272,7 +293,7 @@ class SankeyChartData {
       const cardinality = summary[node.kind + '::' + node.name];
       node.color = this.getNodeTagColor(node);
       if (node.targetCount || node.sourceCount) {
-        node.cardinality = { sourceCount: node.sourceCount, targetCount: node.targetCount, fetchMore: true , refs: 0};
+        node.cardinality = { sourceCount: node.sourceCount, targetCount: node.targetCount, fetchMore: true, refs: 0 };
         if (node.sourceCount) {
           delete node.sourceCount;
           const nextNode = this.appendNextNode(node, -1);
@@ -338,15 +359,17 @@ class SankeyChartData {
     return dataArray.find(item => item.name === name);
   }
 
-  filterDependencies(selectedNode: Node, selectedKind?: KindMeta): { relations: Relation[]; hasRelatedSourceKinds: boolean } {
+  filterDependencies(selectedNode: Node, selectedKind?: KindMeta): { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean } {
     let relatedRelations: Relation[] = [];
+    const kindNames = this.getKinds().map(kind => kind.name);
+
     const targetRelations = this.originalData.relations.filter(relation => {
-      return relation.source.kind === selectedNode.kind && relation.source.name === selectedNode.name;
+      return relation.source.kind === selectedNode.kind && relation.source.name === selectedNode.name && (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true);
     });
 
     const targetKeys = targetRelations ? [...new Set(targetRelations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`))] : [];
     const targetTargetRelations = this.originalData.relations.filter(relation => {
-      return targetKeys.includes(relation.source.kind + '::' + relation.source.name);
+      return (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true) && targetKeys.includes(relation.source.kind + '::' + relation.source.name);
     });
 
     if (selectedKind?.includeAlternative) {
@@ -358,27 +381,29 @@ class SankeyChartData {
     }
 
     const sourceRelations = this.originalData.relations.filter(relation => {
-      return relation.target.kind === selectedNode.kind && relation.target.name === selectedNode.name;
+      return (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true) && relation.target.kind === selectedNode.kind && relation.target.name === selectedNode.name;
     });
 
     const sourceKeys = sourceRelations ? [...new Set(sourceRelations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`))] : [];
     const sourceSourceRelations = this.originalData.relations.filter(relation => {
-      return sourceKeys.includes(`${relation.target.kind}::${relation.target.name}`);
+      return (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true) && sourceKeys.includes(`${relation.target.kind}::${relation.target.name}`);
     });
 
     const distinctRelations = [...new Set([...targetRelations, ...targetTargetRelations, ...sourceSourceRelations, ...relatedRelations, ...sourceRelations].map(rel => JSON.stringify(rel)))].map(relString => JSON.parse(relString));
 
+    selectedNode.hasRelationsOfSameKinds = distinctRelations.find(relation => relation.source.kind === selectedNode.kind || relation.target.kind === selectedNode.kind) ? true : false;
     return {
       relations: distinctRelations,
-      hasRelatedSourceKinds: relatedRelations.length > 0
+      hasRelatedSourceOfOtherKinds: relatedRelations.length > 0
     };
-
 
   }
   filterNodes(relations: Relation[]): Node[] {
     const relationKeys = relations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`);
     const relationSourceKeys = relations.flatMap(relation => `${relation.source.kind}::${relation.source.name}`);
-
+    if (this.selectedNode) {
+      relationSourceKeys.push(`${this.selectedNode.kind}::${this.selectedNode.name}`)
+    }
     const distinctKeys = [...new Set(relationKeys.concat(relationSourceKeys))];
 
     return this.originalData.nodes.filter(node => distinctKeys.includes(`${node.kind}::${node.name}`));
