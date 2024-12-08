@@ -3,32 +3,45 @@ name: Publish Package
 on:
   push:
     tags:
-      - 'v*.*.*' # Trigger only on version tags (e.g., v0.0.2)
+      # - 'v*.*.*' # Trigger only on version tags (e.g., v0.0.2)
+      - "sankeychart@*" # Trigger for submodule1 versions
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        submodule:
+          - sankeychart
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+
+      - name: Set working directory for submodule
+        run: cd ${{ matrix.submodule }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: '21' # Specify your preferred Node.js version
           registry-url: 'https://registry.npmjs.org/' # npm registry URL
 
       - name: Install dependencies
         run: npm install
+        working-directory: ./${{ matrix.submodule }}
 
       - name: Run Tests
         run: npm test # Run tests to ensure code quality
+        working-directory: ./${{ matrix.submodule }}
 
       - name: Build package
         run: npm run build # Builds your modules and main distribution
+        working-directory: ./${{ matrix.submodule }}
 
       - name: Publish to npm
         run: npm run publish:dist # Publishes the built package from the dist folder
+        working-directory: ./${{ matrix.submodule }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Use npm token from GitHub Secrets

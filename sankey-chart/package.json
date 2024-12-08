@@ -1,6 +1,6 @@
 {
   "name": "@vii7/awesome-sankey-chart",
-  "version": "0.0.7",
+  "version": "0.0.9",
   "description": "SVG Charts - Donut and Sankey",
   "main": "./dist/bundled/index.bundle.js",
   "module": "./dist/plain/index.js",
@@ -16,6 +16,8 @@
     "build:prod": "npm run build:plain && npm run build:bundled:prod",
     "build": "npm run build:dev && npm run build:prod && npm run build:vanilla",
     "publish:dist": "npm publish",
+    "publish:update-version": "npx standard-version",
+    "publish:github-mpmjs": "git push --follow-tags origin main && npm publish",
     "clean": "rm -rf dist"
   },
   "keywords": [
@@ -27,6 +29,7 @@
   "author": "VII.ch",
   "license": "MIT",
   "devDependencies": {
+    "standard-version": "^9.5.0",
     "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.2.3",
     "typescript": "^4.5.2",

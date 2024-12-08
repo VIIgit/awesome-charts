@@ -17,6 +17,8 @@
     "build-drill-down": "cd drill-down && npm run build",
     "build-main": "webpack",
     "publish:dist": "npm publish",
+    "publish:update-version": "npx standard-version",
+    "publish:github-mpmjs": "git push --follow-tags origin main && npm publish",
     "clean": "rm -rf dist sankey-chart/dist"
   },
   "keywords": [
