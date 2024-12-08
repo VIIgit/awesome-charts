@@ -3,24 +3,15 @@ name: Publish Package
 on:
   push:
     tags:
-      # - 'v*.*.*' # Trigger only on version tags (e.g., v0.0.2)
-      - "sankeychart@*" # Trigger for submodule1 versions
+      - "sankey-chart@*" # Trigger for sankeychart tags
 
 jobs:
   publish:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        submodule:
-          - sankeychart
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set working directory for submodule
-        run: cd ${{ matrix.submodule }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
@@ -30,18 +21,18 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./${{ matrix.submodule }}
+        working-directory: ./sankeychart
 
       - name: Run Tests
-        run: npm test # Run tests to ensure code quality
-        working-directory: ./${{ matrix.submodule }}
+        run: npm test
+        working-directory: ./sankeychart
 
       - name: Build package
-        run: npm run build # Builds your modules and main distribution
-        working-directory: ./${{ matrix.submodule }}
+        run: npm run build
+        working-directory: ./sankeychart
 
       - name: Publish to npm
-        run: npm run publish:dist # Publishes the built package from the dist folder
-        working-directory: ./${{ matrix.submodule }}
+        run: npm publish --access public
+        working-directory: ./sankeychart
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }} # Use npm token from GitHub Secrets
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
