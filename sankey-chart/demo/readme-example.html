@@ -4,22 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sankey Chart Demo</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-
-    #chart {
-      width: 800px;
-      height: 600px;
-    }
-
-    .selectedSvg {
-      transition: transform 0.5s ease, filter 0.5s ease;
-      transform-origin: 0 0;
-    }
-  </style>
   <script src="../dist/vanilla/event-handler.js"></script>
   <script src="../dist/vanilla/sankey-chart-data.js"></script>
   <script src="../dist/vanilla/sankey-chart.js"></script>
@@ -94,7 +78,7 @@
     }
 
     const svg = document.getElementById('sankey-chart-svg');
-    const sankeyChart = new SankeyChart(svg, {});
+    const sankeyChart = new SankeyChart(svg);
     sankeyChart.setData(sankeyChartData);
     sankeyChart.render();
 
