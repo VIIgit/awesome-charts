@@ -1,3 +1,5 @@
-dist
+./dist
 node_modules
-sankey-chart/dist
+sankey-chart/dist/event*.*
+sankey-chart/dist/index*.*
+sankey-chart/dist/sankey*.*

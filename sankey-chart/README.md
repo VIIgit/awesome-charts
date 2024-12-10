@@ -85,4 +85,4 @@ Here's a simple example using Chart.js, one of the popular charting libraries:
 </body>
 ```
 
-![example1](docs/images/example1.png "Screenshot")
+![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/example1.png "Screenshot")
