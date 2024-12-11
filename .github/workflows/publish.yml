@@ -21,18 +21,18 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./sankeychart
+        working-directory: ./sankey-chart
 
       - name: Run Tests
         run: npm test
-        working-directory: ./sankeychart
+        working-directory: ./sankey-chart
 
       - name: Build package
         run: npm run build
-        working-directory: ./sankeychart
+        working-directory: ./sankey-chart
 
       - name: Publish to npm
         run: npm publish --access public
-        working-directory: ./sankeychart
+        working-directory: ./sankey-chart
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
