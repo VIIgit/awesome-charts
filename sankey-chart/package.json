@@ -1,10 +1,9 @@
 {
   "name": "@vii7/awesome-sankey-chart",
-  "version": "0.0.23",
+  "version": "0.0.24",
   "description": "SVG Charts - Donut and Sankey",
   "main": "./dist/bundled/index.bundle.js",
   "module": "./dist/plain/index.js",
-
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VIIgit/awesome-charts.git"
