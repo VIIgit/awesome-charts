@@ -235,7 +235,7 @@ class SankeyChart {
             const gText = document.createElementNS(this.SVG_NS, "g");
             const gPath = document.createElementNS(this.SVG_NS, "g");
             relations === null || relations === void 0 ? void 0 : relations.forEach((link) => {
-                var _a, _b, _c, _d, _e;
+                var _a, _b, _c, _d;
                 const g = document.createElementNS(this.SVG_NS, "g");
                 const sourcePosition = localNodePositions[link.source.kind + '::' + link.source.name];
                 const targetPosition = localNodePositions[link.target.kind + '::' + link.target.name];
@@ -283,15 +283,13 @@ class SankeyChart {
                 path.setAttribute('stroke', linkColor);
                 gPath.appendChild(path);
                 let analytics;
-                if (((_a = link.analytics) === null || _a === void 0 ? void 0 : _a.drillDown) && link.source.kind != (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind)) {
-                }
                 if (analytics) {
                 }
                 else {
                     analytics = link.analytics;
                     const isSelectedKind = link.target.kind === (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind) || link.source.kind === (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind);
                 }
-                if ((_b = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _b !== void 0 ? _b : 0 > 0) {
+                if ((_a = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _a !== void 0 ? _a : 0 > 0) {
                     const text = this.createSvgText('', [this.className.RELATION]);
                     text.setAttribute("x", String(targetPosition.x - this.options.marginY));
                     text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + 8));
@@ -302,8 +300,8 @@ class SankeyChart {
                     if ((analytics === null || analytics === void 0 ? void 0 : analytics.environment) && this.options.relation.environment[analytics === null || analytics === void 0 ? void 0 : analytics.environment]) {
                         path.setAttribute('stroke-dasharray', this.options.relation.environment[analytics.environment].dashArray);
                     }
-                    if ((_c = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _c !== void 0 ? _c : 0 > 0) {
-                        const errorRatio = (100 / ((_d = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _d !== void 0 ? _d : 0) * ((_e = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _e !== void 0 ? _e : 0));
+                    if ((_b = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _b !== void 0 ? _b : 0 > 0) {
+                        const errorRatio = (100 / ((_c = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _c !== void 0 ? _c : 0) * ((_d = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _d !== void 0 ? _d : 0));
                         const tspanErr = document.createElementNS(this.SVG_NS, "tspan");
                         tspanErr.setAttribute("fill", "red");
                         tspanErr.textContent = ' ' + (errorRatio == 0 ? "(<0.01%)" : '(' + errorRatio.toFixed(2).toLocaleString() + '%)');

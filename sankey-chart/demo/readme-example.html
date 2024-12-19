@@ -37,9 +37,13 @@
       "relations": [
         { source: { kind: "consumer", name: "Consumer 1" }, "target": { kind: "product", name: "Product 3" } },
         { source: { kind: "consumer", name: "Consumer 4" }, "target": { kind: "product", name: "Product 3" } },
-        { source: { kind: "product", name: "Product 3" }, "target": { kind: "proxy", name: "Proxy B" } },
-        { source: { kind: "product", name: "Product 3" }, "target": { kind: "proxy", name: "Proxy A" } },
+        { source: { kind: "product", name: "Product 3" }, "target": { kind: "proxy", name: "Proxy B" }, analytics: {traffic: 100000, errors: 20} },
+        { source: { kind: "product", name: "Product 3" }, "target": { kind: "proxy", name: "Proxy A" }, analytics: {traffic: 20000, errors: 20, environment: "nonPROD"}  },
         { source: { kind: "product", name: "Product 3" }, "target": { kind: "product", name: "Product 4" } },
+
+        { source: { kind: "product", name: "Product 4" }, "target": { kind: "proxy", name: "Proxy D" } },
+        { source: { kind: "consumer", name: "Consumer 4" }, "target": { kind: "product", name: "Product 4" } },
+
         { source: { kind: "product", name: "Product 5" }, "target": { kind: "proxy", name: "Proxy A" } },
         { source: { kind: "product", name: "Product 5" }, "target": { kind: "proxy", name: "Proxy B" } },
         { source: { kind: "product", name: "Product 5" }, "target": { kind: "proxy", name: "Proxy C" } },
@@ -462,13 +466,6 @@
     // Initialize the UI when the page loads
     window.onload = initializeUI;
   </script>
-
-
-
-
-
-
-
 
 </body>
 

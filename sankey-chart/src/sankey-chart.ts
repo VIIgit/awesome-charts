@@ -594,10 +594,6 @@ class SankeyChart {
       gPath.appendChild(path);
 
       let analytics: Analytics | undefined;
-      if (link.analytics?.drillDown && link.source.kind != selectedNode?.kind) {
-        // not working yet
-        //analytics = link.analytics?.drillDown.find(item => item.kind === selectedNode?.kind && item.name === selectedNode?.name);
-      }
       if (analytics) {
         /*opacity = opacity + this.options.relation.analyticsOpacity;
         */

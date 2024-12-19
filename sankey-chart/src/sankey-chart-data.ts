@@ -40,7 +40,6 @@ interface BasicNode {
 
 interface Analytics {
   traffic: number;
-  drillDown?: BasicNode[];
   environment?: string;
   errors?: number;
 }
@@ -363,9 +362,21 @@ class SankeyChartData {
     let relatedRelations: Relation[] = [];
     const kindNames = this.getKinds().map(kind => kind.name);
 
-    const targetRelations = this.originalData.relations.filter(relation => {
+    let targetRelations = this.originalData.relations.filter(relation => {
       return relation.source.kind === selectedNode.kind && relation.source.name === selectedNode.name && (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true);
     });
+
+    
+    if (targetRelations.length == 0) {
+      const selectedSources = this.originalData.relations.filter(relation => {
+        return relation.target.kind === selectedNode.kind && relation.target.name === selectedNode.name && (kindNames.length > 0 ? kindNames.includes(relation.source.kind) : true);
+      });
+      const selectedSourceNames = selectedSources.map(relation => relation.source.name);
+      targetRelations = this.originalData.relations.filter(relation => {
+        return relation.source.kind === selectedNode.kind && selectedSourceNames.includes(relation.source.name);
+      });
+      targetRelations.push(...selectedSources);
+    }
 
     const targetKeys = targetRelations ? [...new Set(targetRelations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`))] : [];
     const targetTargetRelations = this.originalData.relations.filter(relation => {
@@ -421,14 +432,8 @@ class SankeyChartData {
       }
       const sourceKey = `s${source.kind}:${source.name}`;
       const targetKey = `t${target.kind}:${target.name}`;
-      let selectedAnalytics;
-      if (analytics?.drillDown && selectedNode) {
-        selectedAnalytics = analytics.drillDown.find(item => item.kind === selectedNode.kind && item.name === selectedNode.name);
-      }
-      if (!selectedAnalytics) {
-        selectedAnalytics = analytics;
-      }
-
+      let selectedAnalytics = analytics;
+      
       const weight = selectedAnalytics && 'traffic' in selectedAnalytics && (selectedAnalytics.traffic ?? 0) > 0
         ? Math.round(Math.log10(Math.max(selectedAnalytics.traffic, 2) || 2) * (this.options.trafficLog10Factor ?? 12))
         : (this.options.relationDefaultWidth ?? 10);
