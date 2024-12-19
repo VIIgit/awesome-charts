@@ -3,7 +3,7 @@ name: Publish Package
 on:
   push:
     tags:
-      - "sankey-chart@*" # Trigger for sankeychart tags
+      - "npm@*" # Trigger for sankeychart tags
 
 jobs:
   publish:
