@@ -4,6 +4,15 @@
   "description": "SVG Charts - Donut and Sankey",
   "main": "./dist/bundled/index.bundle.js",
   "module": "./dist/plain/index.js",
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VIIgit/awesome-charts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VIIgit/awesome-charts/issues"
+  },
+  "homepage": "https://github.com/VIIgit/awesome-charts/sankey-chart#readme",
   "types": "./dist/plain/index.d.ts",
   "scripts": {
     "test": "echo no test",
