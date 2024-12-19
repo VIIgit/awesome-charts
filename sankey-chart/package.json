@@ -1,6 +1,6 @@
 {
   "name": "@vii7/awesome-sankey-chart",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "description": "SVG Charts - Donut and Sankey",
   "main": "./dist/bundled/index.bundle.js",
   "module": "./dist/plain/index.js",
@@ -18,7 +18,8 @@
     "build": "npm run build:dev && npm run build:prod && npm run build:vanilla",
     "publish:dist": "npm publish",
     "publish:version": "npx standard-version",
-    "publish:npm": "git push --follow-tags origin main && npm publish",
+    "publish:push": "git push --follow-tags origin main",
+    "publish:npmx": "git push --follow-tags origin main && npm publish",
     "clean": "rm -rf dist"
   },
   "keywords": [
