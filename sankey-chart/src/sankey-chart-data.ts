@@ -16,7 +16,7 @@ interface Node {
   tags?: string[];
   placeHolder?: boolean;
   cardinality?: Cardinality;
-  height?: number;
+  selectedCardinality?: Cardinality;
   hasRelatedSourceOfOtherKinds?: boolean;
   hasRelatedSourceOfSameKind?: boolean; // used for indentation
   hasRelationsOfSameKinds?: boolean;
@@ -58,7 +58,6 @@ interface SankeyChartDataOptions {
   noTag?: string;
   noTagSuffixCharacter?: string;
   relationDefaultWidth?: number;
-  trafficLog10Factor?: number;
   defaultColor?: string;
   tagColorMap?: { [key: string]: string };
   kinds: KindMeta[];
@@ -79,7 +78,6 @@ class SankeyChartData {
   selectedNode?: Node;
   nodes: Node[];
   dependencies: { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean; };
-  height: number;
   originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[] };
   nodesByKinds: { [key: string]: Node[] };
   title?: KindMeta;
@@ -89,7 +87,7 @@ class SankeyChartData {
     this.selectedNode = undefined;
     this.nodes = [];
     this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
-    this.height = 0;
+
     this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
     this.nodesByKinds = {};
     this.title = undefined;
@@ -97,7 +95,6 @@ class SankeyChartData {
       noTag: 'Others',
       noTagSuffixCharacter: '…',
       relationDefaultWidth: 15,
-      trafficLog10Factor: 12,
       defaultColor: "orange",
       tagColorMap: {},
       kinds: [],
@@ -198,7 +195,6 @@ class SankeyChartData {
       this.nodes = this.originalData.nodes;
       this.dependencies.relations = this.originalData.relations || [];
       this.nodesByKinds = groupByKind(this.nodes);
-      this.updateRelationWeights(this.nodes, this.dependencies.relations);
       this.selectedNode = undefined;
     } else if (!node.kind || !node.name) {
       throw new Error('Node must have kind and name');
@@ -225,8 +221,6 @@ class SankeyChartData {
           this.nodes.forEach(node => {
             node.hasRelatedSourceOfSameKind = this.dependencies.relations.find(relation => relation.target.kind === node.kind && relation.target.name === node.name && relation.source.kind === node.kind) ? true : false;
           });
-
-          this.updateRelationWeights(this.nodes, this.dependencies.relations, this.selectedNode);
         }
       } else {
         this.nodes = [];
@@ -366,7 +360,6 @@ class SankeyChartData {
       return relation.source.kind === selectedNode.kind && relation.source.name === selectedNode.name && (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true);
     });
 
-    
     if (targetRelations.length == 0) {
       const selectedSources = this.originalData.relations.filter(relation => {
         return relation.target.kind === selectedNode.kind && relation.target.name === selectedNode.name && (kindNames.length > 0 ? kindNames.includes(relation.source.kind) : true);
@@ -418,36 +411,6 @@ class SankeyChartData {
     const distinctKeys = [...new Set(relationKeys.concat(relationSourceKeys))];
 
     return this.originalData.nodes.filter(node => distinctKeys.includes(`${node.kind}::${node.name}`));
-  }
-
-  updateRelationWeights(nodes: Node[], relations: Relation[], selectedNode?: Node) {
-    if (!relations) {
-      return;
-    }
-    const relationWeights = relations.reduce((acc: { [key: string]: number }, relation: Relation) => {
-      const { source, target, analytics } = relation;
-      if (source.kind === target.kind) {
-        relation.height = 0;
-        return acc;
-      }
-      const sourceKey = `s${source.kind}:${source.name}`;
-      const targetKey = `t${target.kind}:${target.name}`;
-      let selectedAnalytics = analytics;
-      
-      const weight = selectedAnalytics && 'traffic' in selectedAnalytics && (selectedAnalytics.traffic ?? 0) > 0
-        ? Math.round(Math.log10(Math.max(selectedAnalytics.traffic, 2) || 2) * (this.options.trafficLog10Factor ?? 12))
-        : (this.options.relationDefaultWidth ?? 10);
-      relation.height = weight;
-
-      acc[sourceKey] = (acc[sourceKey] || 0) + weight;
-      acc[targetKey] = (acc[targetKey] || 0) + weight;
-
-      return acc;
-    }, {});
-
-    nodes.forEach(node => {
-      node.height = Math.max(relationWeights[`s${node.kind}:${node.name}`] ?? 0, relationWeights[`t${node.kind}:${node.name}`] ?? 0);
-    });
   }
 
   mergeData(originData: { nodes: Node[]; relations: Relation[] }, appendData: { nodes: Node[]; relations: Relation[] }): { nodes: Node[]; relations: Relation[] } {

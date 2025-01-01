@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/VIIgit/awesome-charts/issues"
   },
-  "homepage": "https://github.com/VIIgit/awesome-charts/sankey-chart#readme",
+  "homepage": "https://github.com/VIIgit/awesome-charts/blob/main/sankey-chart/README.md",
   "types": "./dist/plain/index.d.ts",
   "scripts": {
     "test": "echo no test",

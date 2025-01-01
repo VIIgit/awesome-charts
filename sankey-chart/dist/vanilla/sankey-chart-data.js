@@ -11,7 +11,6 @@ class SankeyChartData {
         this.selectedNode = undefined;
         this.nodes = [];
         this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
-        this.height = 0;
         this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
         this.nodesByKinds = {};
         this.title = undefined;
@@ -19,7 +18,6 @@ class SankeyChartData {
             noTag: 'Others',
             noTagSuffixCharacter: '…',
             relationDefaultWidth: 15,
-            trafficLog10Factor: 12,
             defaultColor: "orange",
             tagColorMap: {},
             kinds: [],
@@ -111,7 +109,6 @@ class SankeyChartData {
             this.nodes = this.originalData.nodes;
             this.dependencies.relations = this.originalData.relations || [];
             this.nodesByKinds = groupByKind(this.nodes);
-            this.updateRelationWeights(this.nodes, this.dependencies.relations);
             this.selectedNode = undefined;
         }
         else if (!node.kind || !node.name) {
@@ -142,7 +139,6 @@ class SankeyChartData {
                     this.nodes.forEach(node => {
                         node.hasRelatedSourceOfSameKind = this.dependencies.relations.find(relation => relation.target.kind === node.kind && relation.target.name === node.name && relation.source.kind === node.kind) ? true : false;
                     });
-                    this.updateRelationWeights(this.nodes, this.dependencies.relations, this.selectedNode);
                 }
             }
             else {
@@ -320,33 +316,6 @@ class SankeyChartData {
         }
         const distinctKeys = [...new Set(relationKeys.concat(relationSourceKeys))];
         return this.originalData.nodes.filter(node => distinctKeys.includes(`${node.kind}::${node.name}`));
-    }
-    updateRelationWeights(nodes, relations, selectedNode) {
-        if (!relations) {
-            return;
-        }
-        const relationWeights = relations.reduce((acc, relation) => {
-            var _a, _b, _c;
-            const { source, target, analytics } = relation;
-            if (source.kind === target.kind) {
-                relation.height = 0;
-                return acc;
-            }
-            const sourceKey = `s${source.kind}:${source.name}`;
-            const targetKey = `t${target.kind}:${target.name}`;
-            let selectedAnalytics = analytics;
-            const weight = selectedAnalytics && 'traffic' in selectedAnalytics && ((_a = selectedAnalytics.traffic) !== null && _a !== void 0 ? _a : 0) > 0
-                ? Math.round(Math.log10(Math.max(selectedAnalytics.traffic, 2) || 2) * ((_b = this.options.trafficLog10Factor) !== null && _b !== void 0 ? _b : 12))
-                : ((_c = this.options.relationDefaultWidth) !== null && _c !== void 0 ? _c : 10);
-            relation.height = weight;
-            acc[sourceKey] = (acc[sourceKey] || 0) + weight;
-            acc[targetKey] = (acc[targetKey] || 0) + weight;
-            return acc;
-        }, {});
-        nodes.forEach(node => {
-            var _a, _b;
-            node.height = Math.max((_a = relationWeights[`s${node.kind}:${node.name}`]) !== null && _a !== void 0 ? _a : 0, (_b = relationWeights[`t${node.kind}:${node.name}`]) !== null && _b !== void 0 ? _b : 0);
-        });
     }
     mergeData(originData, appendData) {
         appendData.nodes.forEach(node => {

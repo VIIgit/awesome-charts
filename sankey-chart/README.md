@@ -9,7 +9,7 @@ This repository contains a collection of chart libraries, tools, and resources t
 
 ## Quick Start Example
 
-Here's a simple example using Chart.js, one of the popular charting libraries:
+Here's a simple example using plain vanilla javascripts without any third party dependencies:
 
 ```html
 <head>

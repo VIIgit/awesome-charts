@@ -1,6 +1,10 @@
 import { EventHandler } from './event-handler';
 import { SankeyChartData as ChartData, Kind, Relation, Node, Analytics } from './sankey-chart-data';
 
+interface ChartNode extends Node {
+  height?: number;
+}
+
 interface CustomOptions {
   nodeWidth?: number;
   nodeMinHeight?: number;
@@ -12,6 +16,8 @@ interface CustomOptions {
   nameMaxLength?: number;
   nodeColumnWith?: number;
   defaultNodeColor?: string;
+  trafficLog10Factor?: number;
+  relationDefaultWidth?: number;
   renderKindAsColums?: boolean;
   relation?: {
     selectedOpacity?: number;
@@ -22,45 +28,49 @@ interface CustomOptions {
         dashArray?: string;
       };
     };
+    sameKindIndentation: number;
   };
   ellipseCharacter?: string;
   rootCharacter?: string;
 }
 
 class SankeyChart {
-  private options: {
-    nodeWidth: number;
-    nodeMinHeight: number;
-    marginX: number;
-    marginY: number;
-    leftX: number;
-    topY: number;
-    nodeMarginY: number;
-    nameMaxLength: number;
-    nodeColumnWith: number;
-    defaultNodeColor: string;
-    renderKindAsColums: boolean;
-    relation: {
-      selectedOpacity: number;
-      analyticsOpacity: number;
-      opacity: number;
-      environment: {
-        [key: string]: {
-          dashArray: string;
+  private options:
+    {
+      nodeWidth: number;
+      nodeMinHeight: number;
+      marginX: number;
+      marginY: number;
+      leftX: number;
+      topY: number;
+      nodeMarginY: number;
+      nameMaxLength: number;
+      nodeColumnWith: number;
+      defaultNodeColor: string;
+      renderKindAsColums: boolean;
+      trafficLog10Factor: number,
+      relationDefaultWidth: number,
+      relation: {
+        selectedOpacity: number;
+        analyticsOpacity: number;
+        opacity: number;
+        environment: {
+          [key: string]: {
+            dashArray: string;
+          };
         };
+        sameKindIndentation: number;
       };
-      sameKindIndentation: number;
+      selectedNode: {
+        scale: number;
+        dropShadow: boolean;
+        borderColor: string;
+        hoverOpacity: number;
+        hoverColor: string;
+      };
+      ellipseCharacter: string;
+      rootCharacter: string;
     };
-    selectedNode: {
-      scale: number;
-      dropShadow: boolean;
-      borderColor: string;
-      hoverOpacity: number;
-      hoverColor: string;
-    };
-    ellipseCharacter: string;
-    rootCharacter: string;
-  };
   private calculatedHeight: number;
   private svgElement: SVGSVGElement;
   private nodePositions: Record<string, any>;
@@ -91,6 +101,8 @@ class SankeyChart {
       nodeColumnWith: 300,
       defaultNodeColor: "gray",
       renderKindAsColums: true,
+      trafficLog10Factor: 12,
+      relationDefaultWidth: 15,
       relation: {
         selectedOpacity: 0.2,
         analyticsOpacity: 0.2,
@@ -112,7 +124,9 @@ class SankeyChart {
       ellipseCharacter: '…',
       rootCharacter: '⌂'
     };
-    this.setOptions(customOptions || {});
+    if (customOptions) {
+      this.setOptions(customOptions);
+    }
     this.calculatedHeight = 0;
     this.svgElement = svgElement;
     this.nodePositions = {};
@@ -184,7 +198,7 @@ class SankeyChart {
   }
 
   private updateHeight(): void {
-    const width = (this.options.nodeColumnWith + this.options.nodeWidth) * Math.max(1, this.chartData?.getKinds().length || 0) + (this.options.marginX * 2);
+    const width = ((this.options.nodeColumnWith ?? 0) + (this.options.nodeWidth ?? 0)) * Math.max(1, this.chartData?.getKinds().length || 0) + (this.options.marginX * 2);
     this.svgElement.setAttribute('height', this.calculatedHeight.toString());
     this.svgElement.setAttribute('width', width.toString());
   }
@@ -287,7 +301,7 @@ class SankeyChart {
     return target;
   }
 
-  renderNodes = (nodes: Node[], positionX: number, selectedNode?: Node, kind?: Kind) => {
+  renderNodes = (nodes: ChartNode[], positionX: number, selectedNode?: Node, kind?: Kind) => {
 
     const svgGroup = document.createElementNS(this.SVG_NS, "g");
 
@@ -410,7 +424,7 @@ class SankeyChart {
       const cardinality = node.cardinality;
       if (cardinality) {
         if (cardinality.sourceCount ?? 0 > 0) {
-          const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+          const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
           sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
           sourceText.setAttribute("y", String(y + rectHeight - 2));
           sourceText.setAttribute("fill", color);
@@ -493,7 +507,12 @@ class SankeyChart {
       if (isSelected && !node?.placeHolder && this.contextMenuElement) {
         svgGroup.appendChild(this.renderElipsisMenu(posX, y));
       }
-      this.nodePositions[node.kind + '::' + node.name] = { x: posX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color };
+      this.nodePositions[node.kind + '::' + node.name] = {
+        x: posX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color,
+        isSelected: isSelected,
+        sourceIndex: 0,
+        targetIndex: 0
+      };
 
       overallY = overallY + rectHeight + this.options.nodeMarginY;
     });
@@ -507,6 +526,7 @@ class SankeyChart {
     return text;
   }
 
+
   renderRelations = (relations: Relation[] | undefined, selectedNode: Node | undefined) => {
 
     const { name, kind, color } = selectedNode || {};
@@ -515,7 +535,6 @@ class SankeyChart {
 
     const gText = document.createElementNS(this.SVG_NS, "g");
     const gPath = document.createElementNS(this.SVG_NS, "g");
-
 
     relations?.forEach((link) => {
       const g = document.createElementNS(this.SVG_NS, "g");
@@ -527,34 +546,22 @@ class SankeyChart {
       }
 
       const linkColor = sourcePosition.color || defaultColor;
+      const sameKind = link.source.kind === link.target.kind;
+      const selectedSource = sameKind ? 0 : this.calculateGap(sourcePosition.sourceIndex++);
+      sourcePosition['accSourceY'] = (sourcePosition['accSourceY'] ?? 0) + selectedSource;
 
-
-
-      /*
-      let linkColor = sourcePosition.color || defaultColor;
-      if (color && (link.source.kind === selectedNode.kind && link.source.name === name || link.target.kind === kind && link.target.name === name)) {
-        linkColor = color;
-        linkColor = sourcePosition.color;
-        linkColor = targetPosition.color;
-      }*/
+      const selectedTarget = sameKind ? 0 : this.calculateGap(targetPosition.targetIndex++);
+      targetPosition['accTargetY'] = (targetPosition['accTargetY'] ?? 0) + selectedTarget;
 
       const { source, target, height } = link;
       const controlPoint1X = sourcePosition.x + this.options.nodeWidth;
-      const controlPoint1Y = sourcePosition.sourceY + ((height || 0) / 2);
-      const controlPoint2Y = targetPosition.targetY + ((height || 0) / 2) + 5;
+      const controlPoint1Y = sourcePosition.sourceY + ((height || 0) / 2) + sourcePosition['accSourceY'];
+      const controlPoint2Y = targetPosition.targetY + ((height || 0) / 2) + targetPosition['accTargetY'];
       const controlPoint2X = (sourcePosition.x + this.options.nodeWidth + targetPosition.x) / 2;
 
       let pathD;
       let opacity = this.options.relation.opacity;
       let strokeWidth = height;
-
-      /*
-            selectedOpacity: 0.2,
-            analyticsOpacity: 0.2,
-      
-            opacity +=  this.options.relation.analyticsOpacity;
-            opacity: 0.2,
-      */
 
       var opacityEmphasizeSelected = 0;
       if ((link.source.kind === kind && link.source.name === name) || (link.target.kind === kind && link.target.name === name)) {
@@ -656,6 +663,8 @@ class SankeyChart {
 
     this.resetSvg();
 
+    this.updateRelationWeights(this.chartData?.getNodes() ?? [], this.chartData?.getRelations() ?? [], selectedNode);
+
     let column = 0;
     const columnWidth = this.options.nodeColumnWith + this.options.nodeWidth;
     const kinds = this.chartData?.getKinds();
@@ -672,6 +681,52 @@ class SankeyChart {
     this.svgElement.appendChild(svgNodes);
     this.updateHeight();
   }
+
+  private updateRelationWeights(nodes: ChartNode[], relations: Relation[], selectedNode?: Node) {
+    if (!relations) {
+      return;
+    }
+    const relationWeights = relations.reduce((acc: { [key: string]: { height: number, count: number } }, relation: Relation) => {
+      const { source, target, analytics } = relation;
+      if (source.kind === target.kind) {
+        relation.height = 0;
+        return acc;
+      }
+      const sourceKey = `s${source.kind}:${source.name}`;
+      const targetKey = `t${target.kind}:${target.name}`;
+      let selectedAnalytics = analytics;
+
+      const weight = selectedAnalytics && 'traffic' in selectedAnalytics && (selectedAnalytics.traffic ?? 0) > 0
+        ? Math.round(Math.log10(Math.max(selectedAnalytics.traffic, 2) || 2) * (this.options.trafficLog10Factor ?? 12))
+        : (this.options.relationDefaultWidth ?? 10);
+      relation.height = weight;
+
+      if (!acc[sourceKey]) {
+        acc[sourceKey] = { height: 0, count: 0 };
+      }
+      if (!acc[targetKey]) {
+        acc[targetKey] = { height: 0, count: 0 };
+      }
+
+      acc[sourceKey].height += weight + this.calculateGap(acc[sourceKey].count);
+      acc[sourceKey].count += 1;
+      acc[targetKey].height += weight + this.calculateGap(acc[targetKey].count);
+      acc[targetKey].count += 1;
+
+      return acc;
+    }, {});
+
+    nodes.forEach(node => {
+      node.height = Math.max(relationWeights[`s${node.kind}:${node.name}`]?.height ?? 0, relationWeights[`t${node.kind}:${node.name}`]?.height ?? 0);
+    });
+
+  }
+
+  private calculateGap(index: number): number {
+    const start = 30;
+    return (index * 5) + start;
+  }
+
 }
 export default SankeyChart;
-export {SankeyChart, CustomOptions};
+export { SankeyChart, CustomOptions };

@@ -141,7 +141,7 @@ class SankeyChart {
                 const cardinality = node.cardinality;
                 if (cardinality) {
                     if ((_b = cardinality.sourceCount) !== null && _b !== void 0 ? _b : 0 > 0) {
-                        const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+                        const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
                         sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
                         sourceText.setAttribute("y", String(y + rectHeight - 2));
                         sourceText.setAttribute("fill", color);
@@ -216,7 +216,12 @@ class SankeyChart {
                 if (isSelected && !(node === null || node === void 0 ? void 0 : node.placeHolder) && this.contextMenuElement) {
                     svgGroup.appendChild(this.renderElipsisMenu(posX, y));
                 }
-                this.nodePositions[node.kind + '::' + node.name] = { x: posX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color };
+                this.nodePositions[node.kind + '::' + node.name] = {
+                    x: posX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color,
+                    isSelected: isSelected,
+                    sourceIndex: 0,
+                    targetIndex: 0
+                };
                 overallY = overallY + rectHeight + this.options.nodeMarginY;
             });
             this.calculatedHeight = Math.max(this.calculatedHeight, overallY + this.options.nodeMarginY * 2);
@@ -235,7 +240,7 @@ class SankeyChart {
             const gText = document.createElementNS(this.SVG_NS, "g");
             const gPath = document.createElementNS(this.SVG_NS, "g");
             relations === null || relations === void 0 ? void 0 : relations.forEach((link) => {
-                var _a, _b, _c, _d;
+                var _a, _b, _c, _d, _e, _f;
                 const g = document.createElementNS(this.SVG_NS, "g");
                 const sourcePosition = localNodePositions[link.source.kind + '::' + link.source.name];
                 const targetPosition = localNodePositions[link.target.kind + '::' + link.target.name];
@@ -243,10 +248,15 @@ class SankeyChart {
                     return;
                 }
                 const linkColor = sourcePosition.color || defaultColor;
+                const sameKind = link.source.kind === link.target.kind;
+                const selectedSource = sameKind ? 0 : this.calculateGap(sourcePosition.sourceIndex++);
+                sourcePosition['accSourceY'] = ((_a = sourcePosition['accSourceY']) !== null && _a !== void 0 ? _a : 0) + selectedSource;
+                const selectedTarget = sameKind ? 0 : this.calculateGap(targetPosition.targetIndex++);
+                targetPosition['accTargetY'] = ((_b = targetPosition['accTargetY']) !== null && _b !== void 0 ? _b : 0) + selectedTarget;
                 const { source, target, height } = link;
                 const controlPoint1X = sourcePosition.x + this.options.nodeWidth;
-                const controlPoint1Y = sourcePosition.sourceY + ((height || 0) / 2);
-                const controlPoint2Y = targetPosition.targetY + ((height || 0) / 2) + 5;
+                const controlPoint1Y = sourcePosition.sourceY + ((height || 0) / 2) + sourcePosition['accSourceY'];
+                const controlPoint2Y = targetPosition.targetY + ((height || 0) / 2) + targetPosition['accTargetY'];
                 const controlPoint2X = (sourcePosition.x + this.options.nodeWidth + targetPosition.x) / 2;
                 let pathD;
                 let opacity = this.options.relation.opacity;
@@ -289,7 +299,7 @@ class SankeyChart {
                     analytics = link.analytics;
                     const isSelectedKind = link.target.kind === (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind) || link.source.kind === (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind);
                 }
-                if ((_a = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _a !== void 0 ? _a : 0 > 0) {
+                if ((_c = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _c !== void 0 ? _c : 0 > 0) {
                     const text = this.createSvgText('', [this.className.RELATION]);
                     text.setAttribute("x", String(targetPosition.x - this.options.marginY));
                     text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + 8));
@@ -300,8 +310,8 @@ class SankeyChart {
                     if ((analytics === null || analytics === void 0 ? void 0 : analytics.environment) && this.options.relation.environment[analytics === null || analytics === void 0 ? void 0 : analytics.environment]) {
                         path.setAttribute('stroke-dasharray', this.options.relation.environment[analytics.environment].dashArray);
                     }
-                    if ((_b = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _b !== void 0 ? _b : 0 > 0) {
-                        const errorRatio = (100 / ((_c = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _c !== void 0 ? _c : 0) * ((_d = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _d !== void 0 ? _d : 0));
+                    if ((_d = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _d !== void 0 ? _d : 0 > 0) {
+                        const errorRatio = (100 / ((_e = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _e !== void 0 ? _e : 0) * ((_f = analytics === null || analytics === void 0 ? void 0 : analytics.errors) !== null && _f !== void 0 ? _f : 0));
                         const tspanErr = document.createElementNS(this.SVG_NS, "tspan");
                         tspanErr.setAttribute("fill", "red");
                         tspanErr.textContent = ' ' + (errorRatio == 0 ? "(<0.01%)" : '(' + errorRatio.toFixed(2).toLocaleString() + '%)');
@@ -334,6 +344,8 @@ class SankeyChart {
             nodeColumnWith: 300,
             defaultNodeColor: "gray",
             renderKindAsColums: true,
+            trafficLog10Factor: 12,
+            relationDefaultWidth: 15,
             relation: {
                 selectedOpacity: 0.2,
                 analyticsOpacity: 0.2,
@@ -355,7 +367,9 @@ class SankeyChart {
             ellipseCharacter: '…',
             rootCharacter: '⌂'
         };
-        this.setOptions(customOptions || {});
+        if (customOptions) {
+            this.setOptions(customOptions);
+        }
         this.calculatedHeight = 0;
         this.svgElement = svgElement;
         this.nodePositions = {};
@@ -419,8 +433,8 @@ class SankeyChart {
     `;
     }
     updateHeight() {
-        var _a;
-        const width = (this.options.nodeColumnWith + this.options.nodeWidth) * Math.max(1, ((_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getKinds().length) || 0) + (this.options.marginX * 2);
+        var _a, _b, _c;
+        const width = (((_a = this.options.nodeColumnWith) !== null && _a !== void 0 ? _a : 0) + ((_b = this.options.nodeWidth) !== null && _b !== void 0 ? _b : 0)) * Math.max(1, ((_c = this.chartData) === null || _c === void 0 ? void 0 : _c.getKinds().length) || 0) + (this.options.marginX * 2);
         this.svgElement.setAttribute('height', this.calculatedHeight.toString());
         this.svgElement.setAttribute('width', width.toString());
     }
@@ -475,12 +489,13 @@ class SankeyChart {
         return target;
     }
     render() {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j;
         const selectedNode = (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getSelectedNode();
         this.resetSvg();
+        this.updateRelationWeights((_c = (_b = this.chartData) === null || _b === void 0 ? void 0 : _b.getNodes()) !== null && _c !== void 0 ? _c : [], (_e = (_d = this.chartData) === null || _d === void 0 ? void 0 : _d.getRelations()) !== null && _e !== void 0 ? _e : [], selectedNode);
         let column = 0;
         const columnWidth = this.options.nodeColumnWith + this.options.nodeWidth;
-        const kinds = (_b = this.chartData) === null || _b === void 0 ? void 0 : _b.getKinds();
+        const kinds = (_f = this.chartData) === null || _f === void 0 ? void 0 : _f.getKinds();
         this.selectedNodePositionY = -1;
         const svgNodes = document.createElementNS(this.SVG_NS, "g");
         if (kinds && kinds.length > 0) {
@@ -490,11 +505,50 @@ class SankeyChart {
             });
         }
         else {
-            svgNodes.appendChild(this.renderNodes((_d = (_c = this.chartData) === null || _c === void 0 ? void 0 : _c.getNodes()) !== null && _d !== void 0 ? _d : [], this.options.leftX + 0));
+            svgNodes.appendChild(this.renderNodes((_h = (_g = this.chartData) === null || _g === void 0 ? void 0 : _g.getNodes()) !== null && _h !== void 0 ? _h : [], this.options.leftX + 0));
         }
         ;
-        this.renderRelations((_e = this.chartData) === null || _e === void 0 ? void 0 : _e.getRelations(), selectedNode);
+        this.renderRelations((_j = this.chartData) === null || _j === void 0 ? void 0 : _j.getRelations(), selectedNode);
         this.svgElement.appendChild(svgNodes);
         this.updateHeight();
+    }
+    updateRelationWeights(nodes, relations, selectedNode) {
+        if (!relations) {
+            return;
+        }
+        const relationWeights = relations.reduce((acc, relation) => {
+            var _a, _b, _c;
+            const { source, target, analytics } = relation;
+            if (source.kind === target.kind) {
+                relation.height = 0;
+                return acc;
+            }
+            const sourceKey = `s${source.kind}:${source.name}`;
+            const targetKey = `t${target.kind}:${target.name}`;
+            let selectedAnalytics = analytics;
+            const weight = selectedAnalytics && 'traffic' in selectedAnalytics && ((_a = selectedAnalytics.traffic) !== null && _a !== void 0 ? _a : 0) > 0
+                ? Math.round(Math.log10(Math.max(selectedAnalytics.traffic, 2) || 2) * ((_b = this.options.trafficLog10Factor) !== null && _b !== void 0 ? _b : 12))
+                : ((_c = this.options.relationDefaultWidth) !== null && _c !== void 0 ? _c : 10);
+            relation.height = weight;
+            if (!acc[sourceKey]) {
+                acc[sourceKey] = { height: 0, count: 0 };
+            }
+            if (!acc[targetKey]) {
+                acc[targetKey] = { height: 0, count: 0 };
+            }
+            acc[sourceKey].height += weight + this.calculateGap(acc[sourceKey].count);
+            acc[sourceKey].count += 1;
+            acc[targetKey].height += weight + this.calculateGap(acc[targetKey].count);
+            acc[targetKey].count += 1;
+            return acc;
+        }, {});
+        nodes.forEach(node => {
+            var _a, _b, _c, _d;
+            node.height = Math.max((_b = (_a = relationWeights[`s${node.kind}:${node.name}`]) === null || _a === void 0 ? void 0 : _a.height) !== null && _b !== void 0 ? _b : 0, (_d = (_c = relationWeights[`t${node.kind}:${node.name}`]) === null || _c === void 0 ? void 0 : _c.height) !== null && _d !== void 0 ? _d : 0);
+        });
+    }
+    calculateGap(index) {
+        const start = 30;
+        return (index * 5) + start;
     }
 }
