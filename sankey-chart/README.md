@@ -86,9 +86,7 @@ Here's a simple example using plain vanilla javascripts without any third party 
 </body>
 ```
 
-## CDN (Plain Vanilla)
+## CDN
 
-- https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/dist/vanilla/event-handler.js
-- https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/dist/vanilla/sankey-chart-data.js
-- https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/dist/vanilla/sankey-chart.js
+https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/
 
