@@ -1,11 +1,12 @@
 
-# Awesome Charts
-
-A curated collection of awesome charting libraries and resources for creating beautiful data visualizations.
+# Sankey Chart
 
 ## Overview
 
-This repository contains a collection of chart libraries, tools, and resources to help developers create stunning data visualizations for their applications.
+This repository contains a Sankey chart library, and resources for creating beautiful data visualizations.
+
+![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/example1.png "Screenshot")
+[Live Demo on CodePen](https://codepen.io/w-vii/pen/pvzEPbd?editors=1010)
 
 ## Quick Start Example
 
@@ -85,5 +86,9 @@ Here's a simple example using plain vanilla javascripts without any third party 
 </body>
 ```
 
-![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/example1.png "Screenshot")
-[Live Demo on CodePen](https://codepen.io/w-vii/pen/pvzEPbd?editors=1010)
+## CDN (Plain Vanilla)
+
+- https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/dist/vanilla/event-handler.js
+- https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/dist/vanilla/sankey-chart-data.js
+- https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/dist/vanilla/sankey-chart.js
+
