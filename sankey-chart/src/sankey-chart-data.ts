@@ -48,7 +48,6 @@ interface Relation {
   source: Node;
   target: Node;
   analytics?: Analytics;
-  height?: number;
   environment?: string;
 }
 enum IncludeKind {

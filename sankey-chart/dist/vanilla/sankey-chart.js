@@ -39,7 +39,7 @@ class SankeyChart {
             }
         };
         this.renderNodes = (nodes, positionX, selectedNode, kind) => {
-            var _a, _b;
+            var _a, _b, _c, _d, _e;
             const svgGroup = document.createElementNS(this.SVG_NS, "g");
             let overallY = this.options.topY;
             (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getKinds;
@@ -48,39 +48,32 @@ class SankeyChart {
             let x2 = positionX + this.options.nodeWidth + this.options.nodeMarginY / 2;
             const y2 = this.options.topY + this.options.marginY + (this.options.nodeWidth);
             if (this.options.renderKindAsColums) {
-                if (kind === null || kind === void 0 ? void 0 : kind.title) {
-                    let prefix = '';
-                    if (kind.color) {
-                        const circle = this.createCircle(x, y, 5, kind.color || this.options.defaultNodeColor);
-                        svgGroup.appendChild(circle);
-                    }
-                    else {
-                        prefix = '| ';
-                        x2 = (x2 - 13);
-                    }
-                    const nodeKindTitle = this.createSvgText(prefix + kind.title, [this.className.NODE_TYPE_TITLE]);
-                    nodeKindTitle.setAttribute("x", x2.toString());
-                    nodeKindTitle.setAttribute("y", y2.toString());
-                    svgGroup.appendChild(nodeKindTitle);
-                    overallY += 25;
-                }
-                else if ((_b = this.chartData) === null || _b === void 0 ? void 0 : _b.getTitle()) {
-                    const title = this.chartData.getTitle();
-                    const circle = this.createCircle(x, y, 5, (title === null || title === void 0 ? void 0 : title.color) || this.options.defaultNodeColor);
+                const title = (kind === null || kind === void 0 ? void 0 : kind.title) || ((_c = (_b = this.chartData) === null || _b === void 0 ? void 0 : _b.getTitle()) === null || _c === void 0 ? void 0 : _c.name);
+                const color = (kind === null || kind === void 0 ? void 0 : kind.color) || ((_e = (_d = this.chartData) === null || _d === void 0 ? void 0 : _d.getTitle()) === null || _e === void 0 ? void 0 : _e.color) || this.options.defaultNodeColor;
+                let prefix = '';
+                if (kind === null || kind === void 0 ? void 0 : kind.color) {
+                    const circle = this.createCircle(x, y, 5, color);
                     svgGroup.appendChild(circle);
-                    const nodeKindTitle = this.createSvgText(((title === null || title === void 0 ? void 0 : title.name) || ''), [this.className.NODE_TYPE_TITLE]);
-                    nodeKindTitle.setAttribute("x", x2.toString());
-                    nodeKindTitle.setAttribute("y", y2.toString());
-                    svgGroup.appendChild(nodeKindTitle);
-                    overallY += 25;
                 }
+                else {
+                    prefix = '| ';
+                    x2 -= 13;
+                }
+                const nodeKindTitle = this.createSvgText(prefix + title, [this.className.NODE_TYPE_TITLE]);
+                nodeKindTitle.setAttribute("x", x2.toString());
+                nodeKindTitle.setAttribute("y", y2.toString());
+                svgGroup.appendChild(nodeKindTitle);
+                overallY += 25;
             }
             nodes.forEach((node, index) => {
-                var _a, _b, _c;
-                const linksHeight = (_a = node.height) !== null && _a !== void 0 ? _a : 0;
-                const height = node.cardinality ? 10 : -20;
+                var _a, _b;
+                const sourceRelations = node.sourceRelations || { height: 0, count: 0 };
+                const targetRelations = node.targetRelations || { height: 0, count: 0 };
+                const linesCount = 1 + (node.subtitle != null ? 1 : 0) + (node.tags != null ? node.tags.length > 0 ? 1 : 0 : 0) + (this.options.renderKindAsColums ? 0 : 1);
+                const linesHeight = linesCount * this.options.nodeLineHeight + this.options.marginY;
+                node.textLinesHeigth = linesHeight;
                 const isSelected = selectedNode && selectedNode.name === node.name && selectedNode.kind === node.kind;
-                const rectHeight = height + Math.max(linksHeight + 2 * this.options.marginY, this.options.nodeMinHeight + (this.options.renderKindAsColums ? 0 : 10) + (node.subtitle ? 10 : 0));
+                const rectHeight = 2 * this.options.marginY + (node.cardinality ? this.options.nodeLineHeight : 0) + Math.max(linesHeight, linesHeight + sourceRelations.height, targetRelations.height);
                 const y = this.options.marginY + overallY;
                 const color = node.color || this.options.defaultNodeColor;
                 let posX = positionX;
@@ -132,22 +125,19 @@ class SankeyChart {
                     }
                     g.appendChild(rectShadow);
                 }
-                else {
-                }
-                ;
                 g.appendChild(rect);
                 rectHover.style.cursor = 'pointer';
                 g.appendChild(rectHover);
                 const cardinality = node.cardinality;
                 if (cardinality) {
-                    if ((_b = cardinality.sourceCount) !== null && _b !== void 0 ? _b : 0 > 0) {
+                    if ((_a = cardinality.sourceCount) !== null && _a !== void 0 ? _a : 0 > 0) {
                         const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
                         sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
                         sourceText.setAttribute("y", String(y + rectHeight - 2));
                         sourceText.setAttribute("fill", color);
                         g.appendChild(sourceText);
                     }
-                    if ((_c = cardinality.targetCount) !== null && _c !== void 0 ? _c : 0 > 0) {
+                    if ((_b = cardinality.targetCount) !== null && _b !== void 0 ? _b : 0 > 0) {
                         const sourceText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
                         sourceText.setAttribute("x", String(posX + this.options.marginX - 14));
                         sourceText.setAttribute("y", String(y + rectHeight - 2));
@@ -217,10 +207,18 @@ class SankeyChart {
                     svgGroup.appendChild(this.renderElipsisMenu(posX, y));
                 }
                 this.nodePositions[node.kind + '::' + node.name] = {
-                    x: posX, y, index, sourceY: y + this.options.marginY, targetY: y, h: rectHeight, color: node.color,
-                    isSelected: isSelected,
+                    node,
+                    x: posX,
+                    y,
+                    index,
+                    sourceY: y + this.options.marginY,
+                    targetY: y,
+                    h: rectHeight,
+                    textLinesHeigth: node.textLinesHeigth,
                     sourceIndex: 0,
-                    targetIndex: 0
+                    targetIndex: 0,
+                    accSourceY: 0,
+                    accTargetY: 0
                 };
                 overallY = overallY + rectHeight + this.options.nodeMarginY;
             });
@@ -247,16 +245,20 @@ class SankeyChart {
                 if (!targetPosition || !sourcePosition) {
                     return;
                 }
-                const linkColor = sourcePosition.color || defaultColor;
+                const linkColor = sourcePosition.node.color || defaultColor;
                 const sameKind = link.source.kind === link.target.kind;
                 const selectedSource = sameKind ? 0 : this.calculateGap(sourcePosition.sourceIndex++);
-                sourcePosition['accSourceY'] = ((_a = sourcePosition['accSourceY']) !== null && _a !== void 0 ? _a : 0) + selectedSource;
+                const firstTextLinesHeigth = (_a = sourcePosition.textLinesHeigth) !== null && _a !== void 0 ? _a : 0;
+                if (firstTextLinesHeigth > 0) {
+                    sourcePosition.textLinesHeigth = 0;
+                }
+                sourcePosition.accSourceY = firstTextLinesHeigth + sourcePosition.accSourceY + selectedSource;
                 const selectedTarget = sameKind ? 0 : this.calculateGap(targetPosition.targetIndex++);
                 targetPosition['accTargetY'] = ((_b = targetPosition['accTargetY']) !== null && _b !== void 0 ? _b : 0) + selectedTarget;
                 const { source, target, height } = link;
                 const controlPoint1X = sourcePosition.x + this.options.nodeWidth;
-                const controlPoint1Y = sourcePosition.sourceY + ((height || 0) / 2) + sourcePosition['accSourceY'];
-                const controlPoint2Y = targetPosition.targetY + ((height || 0) / 2) + targetPosition['accTargetY'];
+                const controlPoint1Y = sourcePosition.sourceY + ((height || 0) / 2) + sourcePosition.accSourceY;
+                const controlPoint2Y = this.options.marginY + targetPosition.targetY + ((height || 0) / 2) + targetPosition.accTargetY;
                 const controlPoint2X = (sourcePosition.x + this.options.nodeWidth + targetPosition.x) / 2;
                 let pathD;
                 let opacity = this.options.relation.opacity;
@@ -325,8 +327,8 @@ class SankeyChart {
                 }
                 else if (source.kind != target.kind) {
                 }
-                sourcePosition.sourceY += height;
-                targetPosition.targetY += height;
+                sourcePosition.sourceY += height !== null && height !== void 0 ? height : 0;
+                targetPosition.targetY += height !== null && height !== void 0 ? height : 0;
                 path.setAttribute('opacity', String(opacity));
             });
             this.svgElement.appendChild(gPath);
@@ -334,7 +336,7 @@ class SankeyChart {
         };
         this.options = {
             nodeWidth: 10,
-            nodeMinHeight: 65,
+            nodeLineHeight: 18,
             marginX: 15,
             marginY: 5,
             leftX: 15,
@@ -517,7 +519,7 @@ class SankeyChart {
             return;
         }
         const relationWeights = relations.reduce((acc, relation) => {
-            var _a, _b, _c;
+            var _a, _b;
             const { source, target, analytics } = relation;
             if (source.kind === target.kind) {
                 relation.height = 0;
@@ -525,10 +527,9 @@ class SankeyChart {
             }
             const sourceKey = `s${source.kind}:${source.name}`;
             const targetKey = `t${target.kind}:${target.name}`;
-            let selectedAnalytics = analytics;
-            const weight = selectedAnalytics && 'traffic' in selectedAnalytics && ((_a = selectedAnalytics.traffic) !== null && _a !== void 0 ? _a : 0) > 0
-                ? Math.round(Math.log10(Math.max(selectedAnalytics.traffic, 2) || 2) * ((_b = this.options.trafficLog10Factor) !== null && _b !== void 0 ? _b : 12))
-                : ((_c = this.options.relationDefaultWidth) !== null && _c !== void 0 ? _c : 10);
+            const weight = (analytics === null || analytics === void 0 ? void 0 : analytics.traffic) && analytics.traffic > 0
+                ? Math.round(Math.log10(Math.max(analytics.traffic, 2)) * ((_a = this.options.trafficLog10Factor) !== null && _a !== void 0 ? _a : 12))
+                : ((_b = this.options.relationDefaultWidth) !== null && _b !== void 0 ? _b : 10);
             relation.height = weight;
             if (!acc[sourceKey]) {
                 acc[sourceKey] = { height: 0, count: 0 };
@@ -543,12 +544,11 @@ class SankeyChart {
             return acc;
         }, {});
         nodes.forEach(node => {
-            var _a, _b, _c, _d;
-            node.height = Math.max((_b = (_a = relationWeights[`s${node.kind}:${node.name}`]) === null || _a === void 0 ? void 0 : _a.height) !== null && _b !== void 0 ? _b : 0, (_d = (_c = relationWeights[`t${node.kind}:${node.name}`]) === null || _c === void 0 ? void 0 : _c.height) !== null && _d !== void 0 ? _d : 0);
+            node.sourceRelations = relationWeights[`s${node.kind}:${node.name}`];
+            node.targetRelations = relationWeights[`t${node.kind}:${node.name}`];
         });
     }
-    calculateGap(index) {
-        const start = 30;
-        return (index * 5) + start;
+    calculateGap(iterations) {
+        return iterations * 5;
     }
 }

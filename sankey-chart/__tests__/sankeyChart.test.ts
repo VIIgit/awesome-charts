@@ -29,7 +29,6 @@ describe('SankeyChartData', () => {
 
   const mockOptions: SankeyChartDataOptions = {
     relationDefaultWidth: 15,
-    trafficLog10Factor: 12,
     kinds: [{ name: 'type1' }, { name: 'type2' }]
   };
 
