@@ -449,4 +449,4 @@ class SankeyChartData {
     return originData;
   }
 }
-export { SankeyChartData, Node, Relation, SankeyChartDataOptions, Kind, Analytics, BasicNode, IncludeKind };
+export { SankeyChartData, Node, Relation, SankeyChartDataOptions, Kind, Analytics, BasicNode, IncludeKind, Cardinality };

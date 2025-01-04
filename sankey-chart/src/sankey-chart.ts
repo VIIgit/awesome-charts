@@ -1,5 +1,5 @@
 import { EventHandler } from './event-handler';
-import { SankeyChartData as ChartData, Kind, Relation, Node, Analytics } from './sankey-chart-data';
+import { SankeyChartData as ChartData, Kind, Relation, Node, Analytics, Cardinality } from './sankey-chart-data';
 
 interface Relations {
   height: number;
@@ -168,7 +168,7 @@ class SankeyChart {
   }
 
   private setOptions(customOptions: CustomOptions): void {
-    this.options = this._deepMerge(this.options, customOptions);
+    this.options = this.deepMerge(this.options, customOptions);
   }
 
   public setData(chartData: ChartData): void {
@@ -228,30 +228,23 @@ class SankeyChart {
   }
 
   private renderElipsisMenu(x: number, y: number): SVGGElement {
-    const menu = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    menu.setAttribute('id', 'ellipsisMenu');
-    menu.setAttribute('style', 'cursor: pointer;');
-    menu.setAttribute('transform', `translate(${x + 2.5}, ${y})`);
-    menu.addEventListener('click', this.showContextMenu);
-
-    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    rect.setAttribute('x', '-2.5');
-    rect.setAttribute('y', '0');
-    rect.setAttribute('width', this.options.nodeWidth.toString());
-    rect.setAttribute('height', '22');
-    rect.setAttribute('rx', '5');
-    rect.setAttribute('ry', '5');
-    rect.setAttribute('fill', 'black');
-    rect.setAttribute('opacity', '0.2');
-    menu.appendChild(rect);
-
+    const menuGroup = document.createElementNS(this.SVG_NS, "g") as SVGGElement;
+    menuGroup.setAttribute('id', 'ellipsisMenu');
+    menuGroup.setAttribute('style', 'cursor: pointer;');
+    menuGroup.setAttribute('transform', `translate(${x + 2.5}, ${y})`);
+    menuGroup.addEventListener('click', this.showContextMenu);
+  
+    const rect = this.createRect(-2.5, 0, this.options.nodeWidth, 22, 'black', '0.2');
+    menuGroup.appendChild(rect);
+  
     for (let iy = 5; iy <= 15; iy += 5) {
       const circle = this.createCircle(2.5, iy, 2, "white");
-      menu.appendChild(circle);
+      menuGroup.appendChild(circle);
     }
-    return menu;
+  
+    return menuGroup ;
   }
-
+  
   private showContextMenu = (event: MouseEvent): void => {
     const contextMenu = this.contextMenuElement;
     const context = { node: this.chartData?.getSelectedNode() }; // Get your dynamic context here
@@ -296,16 +289,7 @@ class SankeyChart {
     }
   };
 
-  private createCircle(cx: number, cy: number, r: number, fill: string): SVGCircleElement {
-    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    circle.setAttribute('cx', cx.toString());
-    circle.setAttribute('cy', cy.toString());
-    circle.setAttribute('r', r.toString());
-    circle.setAttribute('fill', fill);
-    return circle;
-  }
-
-  private _deepMerge(target: any, source: any): any {
+  private deepMerge(target: any, source: any): any {
     if (typeof target !== 'object' || target === null || typeof source !== 'object' || source === null) {
       return source;
     }
@@ -317,7 +301,7 @@ class SankeyChart {
         if (!target[key]) {
           target[key] = {};
         }
-        this._deepMerge(target[key], source[key]);
+        this.deepMerge(target[key], source[key]);
       } else {
         target[key] = source[key];
       }
@@ -325,20 +309,18 @@ class SankeyChart {
     return target;
   }
 
-  renderNodes = (nodes: ChartNode[], positionX: number, selectedNode?: Node, kind?: Kind) => {
-
+  private renderNodes (nodes: ChartNode[], positionX: number, selectedNode?: Node, kind?: Kind)  {
     const svgGroup = document.createElementNS(this.SVG_NS, "g");
-
     let overallY = this.options.topY;
-    this.chartData?.getKinds
-    const x: number = positionX + (this.options.nodeWidth / 2);
-    const y: number = this.options.topY + this.options.marginY + (this.options.nodeWidth / 2);
-    let x2: number = positionX + this.options.nodeWidth + this.options.nodeMarginY / 2;
-    const y2: number = this.options.topY + this.options.marginY + (this.options.nodeWidth);
+  
     if (this.options.renderKindAsColums) {
       const title = kind?.title || this.chartData?.getTitle()?.name;
       const color = kind?.color || this.chartData?.getTitle()?.color || this.options.defaultNodeColor;
-
+      const x = positionX + (this.options.nodeWidth / 2);
+      const y = this.options.topY + this.options.marginY + (this.options.nodeWidth / 2);
+      let x2 = positionX + this.options.nodeWidth + this.options.nodeMarginY / 2;
+      const y2 = this.options.topY + this.options.marginY + (this.options.nodeWidth);
+  
       let prefix = '';
       if (kind?.color) {
         const circle = this.createCircle(x, y, 5, color);
@@ -347,73 +329,46 @@ class SankeyChart {
         prefix = '| ';
         x2 -= 13;
       }
-
+  
       const nodeKindTitle = this.createSvgText(prefix + title, [this.className.NODE_TYPE_TITLE]);
       nodeKindTitle.setAttribute("x", x2.toString());
       nodeKindTitle.setAttribute("y", y2.toString());
       svgGroup.appendChild(nodeKindTitle);
       overallY += 25;
     }
-
+  
     nodes.forEach((node, index) => {
       const sourceRelations = node.sourceRelations || { height: 0, count: 0 };
       const targetRelations = node.targetRelations || { height: 0, count: 0 };
-
-      const linesCount = 1 + (node.subtitle != null ? 1 : 0) + (node.tags != null ? node.tags.length > 0 ? 1 : 0 : 0) + (this.options.renderKindAsColums ? 0 : 1);
-      const linesHeight = linesCount * this.options.nodeLineHeight  + this.options.marginY;
-
+      const linesCount = 1 + (node.subtitle ? 1 : 0) + (node.tags?.length ? 1 : 0) + (this.options.renderKindAsColums ? 0 : 1);
+      const linesHeight = linesCount * this.options.nodeLineHeight + this.options.marginY;
       node.textLinesHeight = linesHeight;
-
-      const isSelected = selectedNode && selectedNode.name === node.name && selectedNode.kind === node.kind;
-      const rectHeight = 2 * this.options.marginY + (node.cardinality ? this.options.nodeLineHeight: 0) + Math.max(linesHeight, linesHeight + sourceRelations.height, targetRelations.height);
-
+  
+      const isSelected = selectedNode && selectedNode.name === node.name && selectedNode.kind === node.kind ? true : false;
+      const rectHeight = 2 * this.options.marginY + (node.cardinality ? this.options.nodeLineHeight : 0) + Math.max(linesHeight, linesHeight + sourceRelations.height, targetRelations.height);
       const y = this.options.marginY + overallY;
       const color = node.color || this.options.defaultNodeColor;
       let posX = positionX;
-
       let rectPositionWidth = this.options.nodeColumnWith;
+  
       if (isSelected) {
         this.selectedNodePositionY = y;
       }
-
+  
       if (node.hasRelatedSourceOfSameKind) {
-        posX = posX + this.options.relation.sameKindIndentation;
-        rectPositionWidth = rectPositionWidth - this.options.relation.sameKindIndentation;
+        posX += this.options.relation.sameKindIndentation;
+        rectPositionWidth -= this.options.relation.sameKindIndentation;
       }
-
-      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      const rectHover = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rectHover.setAttribute('x', posX.toString());
-      rectHover.setAttribute('y', y.toString());
-      rectHover.setAttribute('width', rectPositionWidth.toString());
-      rectHover.setAttribute('height', rectHeight.toString());
-      rectHover.setAttribute('rx', "5");
-      rectHover.setAttribute('ry', "5");
-      rectHover.setAttribute('fill', color);
-
-      rectHover.setAttribute('filter', 'url(#dropshadow)');
-      rectHover.setAttribute("opacity", "0");
-      //rectHover.setAttribute('stroke-width', "1");
-      //rectHover.setAttribute('stroke', this.options.selectedNode.borderColor);
-
-      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-      rect.setAttribute('x', posX.toString());
-      rect.setAttribute('y', y.toString());
-      rect.setAttribute('width', this.options.nodeWidth.toString());
-      rect.setAttribute('height', rectHeight.toString());
-      rect.setAttribute('rx', "5");
-      rect.setAttribute('ry', "5");
-      rect.setAttribute('fill', color);
-
+  
+      const g = document.createElementNS(this.SVG_NS, 'g') as SVGGElement;
+      const rectHover = this.createRect(posX, y, rectPositionWidth, rectHeight, color, '0');
+      const rect = this.createRect(posX, y, this.options.nodeWidth, rectHeight, color);
+  
       if (isSelected) {
-        const rectShadow = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rectShadow.setAttribute('x', String(posX - 2));
-        rectShadow.setAttribute('y', String(y - 2));
-        rectShadow.setAttribute('width', String(this.options.nodeWidth + 4));
-        rectShadow.setAttribute('height', String(rectHeight + 4));
+        const rectShadow = this.createRect(posX - 2, y - 2, this.options.nodeWidth + 4, rectHeight + 4, 'none');
         rectShadow.setAttribute('rx', "6");
         rectShadow.setAttribute('ry', "6");
-
+  
         if (this.options.selectedNode.dropShadow) {
           rectShadow.setAttribute('fill', 'black');
           rectShadow.setAttribute('filter', 'url(#dropshadow)');
@@ -424,101 +379,44 @@ class SankeyChart {
           rectShadow.setAttribute('fill', 'none');
           rectShadow.setAttribute("opacity", "1");
         }
-
+  
         g.appendChild(rectShadow);
-        /*        g.style.transform = 'scale(1.2)';
-                g.classList.add('selectedSvg');
-                */
       }
-
+  
       g.appendChild(rect);
-
       rectHover.style.cursor = 'pointer';
       g.appendChild(rectHover);
-
-      const cardinality = node.cardinality;
-      if (cardinality) {
-        if (cardinality.sourceCount ?? 0 > 0) {
-          const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
-          sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
-          sourceText.setAttribute("y", String(y + rectHeight - 2));
-          sourceText.setAttribute("fill", color);
-          g.appendChild(sourceText);
-        }
-        if (cardinality.targetCount ?? 0 > 0) {
-          const sourceText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
-          sourceText.setAttribute("x", String(posX + this.options.marginX - 14));
-          sourceText.setAttribute("y", String(y + rectHeight - 2));
-          sourceText.setAttribute("fill", color);
-          sourceText.setAttribute("text-anchor", "end");
-          g.appendChild(sourceText);
-        }
+  
+      if (node.cardinality) {
+        this.appendCardinalityText(g, node.cardinality, posX, y, rectHeight, color, isSelected);
       }
-
+  
       const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
       text.setAttribute("x", String(posX + this.options.marginX));
       text.setAttribute("y", y.toString());
-
-      // Create tspan elements for each line of text
-      const truncatedTitle = this.truncateName(node.title ? node.title : node.name, this.options.nameMaxLength);
-      const lines = [truncatedTitle];
-      if (node.tags) {
-        lines.push(node.tags.join(', '))
-      }
-      if (!this.options.renderKindAsColums) {
-        lines.push(node.kind.charAt(0).toUpperCase() + node.kind.slice(1))
-      }
-
-      let headlineIndex = 0;
-      let subtitleLineIndex = -1;
-
-      if (node.subtitle) {
-        const truncatedSubtitle = this.truncateName(node.subtitle, this.options.nameMaxLength);
-        lines.splice(1, 0, truncatedSubtitle);
-        headlineIndex = 1;
-        subtitleLineIndex = 0;
-      }
-
-      for (let i = 0; i < lines.length; i++) {
+  
+      const lines = this.createTextLines(node, this.options.nameMaxLength);
+      lines.forEach((line, i) => {
         const tspan = document.createElementNS(this.SVG_NS, "tspan");
         tspan.setAttribute("x", String(posX + this.options.marginX));
         tspan.setAttribute("dy", "1.2em");
-        tspan.textContent = lines[i];
-        if (i === headlineIndex) {
-          tspan.classList.add("headline");
-        } else if (i === subtitleLineIndex) {
-          tspan.classList.add("subtitle");
-        } else {
-          tspan.classList.add("description");
-        }
+        tspan.textContent = line.text;
+        tspan.classList.add(line.class);
         text.appendChild(tspan);
-      }
+      });
+  
       g.appendChild(text);
+  
       if (!node?.placeHolder) {
-        rectHover.addEventListener('click', (event) => {
-          this.chartData?.selectNode(node);
-          this.render();
-          if (node?.cardinality?.fetchMore) {
-            this.eventHandler.dispatchEvent('fetchData', { node });
-          } else {
-          }
-          this.eventHandler.dispatchEvent('selectionChanged', { node, position: { y: this.selectedNodePositionY } });
-          rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
-
-        });
-        rectHover.addEventListener('mouseover', (event) => {
-          rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
-        });
-        rectHover.addEventListener('mouseout', (event) => {
-          rectHover.setAttribute("opacity", "0");
-        });
+        this.addHoverAndClickEvents(rectHover, node);
       }
-
+  
       svgGroup.appendChild(g);
-
+  
       if (isSelected && !node?.placeHolder && this.contextMenuElement) {
         svgGroup.appendChild(this.renderElipsisMenu(posX, y));
       }
+  
       this.nodePositions[node.kind + '::' + node.name] = {
         node,
         x: posX,
@@ -533,20 +431,96 @@ class SankeyChart {
         accumulatedSourceY: 0,
         accumulatedTargetY: 0
       } as NodePosition;
-
-      overallY = overallY + rectHeight + this.options.nodeMarginY;
+  
+      overallY += rectHeight + this.options.nodeMarginY;
     });
+  
     this.calculatedHeight = Math.max(this.calculatedHeight, overallY + this.options.nodeMarginY * 2);
     return svgGroup;
   }
-  createSvgText = (textContent: string, classNames: string[]) => {
+  
+  private createCircle(cx: number, cy: number, r: number, fill: string): SVGCircleElement {
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', cx.toString());
+    circle.setAttribute('cy', cy.toString());
+    circle.setAttribute('r', r.toString());
+    circle.setAttribute('fill', fill);
+    return circle;
+  }
+  
+  private createRect(x: number, y: number, width: number, height: number, fill: string, opacity: string = "1"): SVGRectElement {
+    const rect = document.createElementNS(this.SVG_NS, 'rect');
+    rect.setAttribute('x', x.toString());
+    rect.setAttribute('y', y.toString());
+    rect.setAttribute('width', width.toString());
+    rect.setAttribute('height', height.toString());
+    rect.setAttribute('rx', "5");
+    rect.setAttribute('ry', "5");
+    rect.setAttribute('fill', fill);
+    rect.setAttribute("opacity", opacity);
+    return rect as SVGRectElement;
+  }
+  
+  private appendCardinalityText(g: SVGGElement, cardinality: Cardinality, posX: number, y: number, rectHeight: number, color: string, isSelected: boolean) {
+    if (cardinality.sourceCount ?? 0 > 0) {
+      const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+      sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
+      sourceText.setAttribute("y", String(y + rectHeight - 2));
+      sourceText.setAttribute("fill", color);
+      g.appendChild(sourceText);
+    }
+    if (cardinality.targetCount ?? 0 > 0) {
+      const targetText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+      targetText.setAttribute("x", String(posX + this.options.marginX - 14));
+      targetText.setAttribute("y", String(y + rectHeight - 2));
+      targetText.setAttribute("fill", color);
+      targetText.setAttribute("text-anchor", "end");
+      g.appendChild(targetText);
+    }
+  }
+  
+  private createTextLines(node: ChartNode, nameMaxLength: number) {
+    const truncatedTitle = this.truncateName(node.title ? node.title : node.name, nameMaxLength);
+    const lines = [{ text: truncatedTitle, class: "headline" }];
+    if (node.subtitle) {
+      const truncatedSubtitle = this.truncateName(node.subtitle, nameMaxLength);
+      lines.splice(1, 0, { text: truncatedSubtitle, class: "subtitle" });
+    }
+    if (node.tags) {
+      lines.push({ text: node.tags.join(', '), class: "description" });
+    }
+    if (!this.options.renderKindAsColums) {
+      lines.push({ text: node.kind.charAt(0).toUpperCase() + node.kind.slice(1), class: "description" });
+    }
+    return lines;
+  }
+  
+  private addHoverAndClickEvents(rectHover: SVGRectElement, node: ChartNode) {
+    rectHover.addEventListener('click', (event) => {
+      this.chartData?.selectNode(node);
+      this.render();
+      if (node?.cardinality?.fetchMore) {
+        this.eventHandler.dispatchEvent('fetchData', { node });
+      }
+      this.eventHandler.dispatchEvent('selectionChanged', { node, position: { y: this.selectedNodePositionY } });
+      rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
+    });
+    rectHover.addEventListener('mouseover', (event) => {
+      rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
+    });
+    rectHover.addEventListener('mouseout', (event) => {
+      rectHover.setAttribute("opacity", "0");
+    });
+  }
+  
+  private createSvgText  (textContent: string, classNames: string[]) {
     const text = document.createElementNS(this.SVG_NS, "text");
     text.classList.add(...classNames.filter(className => className));
     text.textContent = textContent;
     return text;
   }
 
-  renderRelations = (relations: ChartRelation[] | undefined, selectedNode: ChartNode | undefined) => {
+  private renderRelations (relations: ChartRelation[] | undefined, selectedNode: ChartNode | undefined) {
 
     const { name, kind, color } = selectedNode || {};
     const defaultColor = color || this.options.defaultNodeColor;
@@ -674,6 +648,7 @@ class SankeyChart {
     this.svgElement.appendChild(gPath);
     this.svgElement.appendChild(gText);
   }
+
   private render(): void {
     const selectedNode = this.chartData?.getSelectedNode();
 
@@ -739,7 +714,7 @@ class SankeyChart {
   }
 
   private calculateGap(iterations: number): number {
-    return iterations * 5;
+    return iterations * 3;
   }
 }
 export default SankeyChart;
