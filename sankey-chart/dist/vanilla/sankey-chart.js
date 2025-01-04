@@ -46,7 +46,6 @@ class SankeyChart {
             leftX: 15,
             topY: 10,
             nodeMarginY: 10,
-            nameMaxLength: 50,
             nodeColumnWith: 300,
             defaultNodeColor: "gray",
             renderKindAsColums: true,
@@ -65,12 +64,13 @@ class SankeyChart {
             },
             selectedNode: {
                 dropShadow: false,
-                scale: 1.2,
                 borderColor: '#ff1010',
-                hoverOpacity: 0.2,
-                hoverColor: '#141414'
+                hoverOpacity: 0.2
             },
-            ellipseCharacter: '…',
+            truncateText: {
+                defaultFontSizeAndFamily: '16px Arial',
+                ellipseCharacter: '…'
+            },
             rootCharacter: '⌂'
         };
         if (customOptions) {
@@ -90,6 +90,7 @@ class SankeyChart {
             SELECTED: 'selected'
         };
         this.selectedNodePositionY = -1;
+        this.truncateText = this.createTruncateText();
     }
     setOptions(customOptions) {
         this.options = this.deepMerge(this.options, customOptions);
@@ -122,11 +123,33 @@ class SankeyChart {
             this.eventHandler.subscribe('fetchData', callbackFunction);
         }
     }
-    truncateName(name, maxLength) {
-        if (name && (name === null || name === void 0 ? void 0 : name.length) > maxLength) {
-            return name.substring(0, maxLength - 3) + this.options.ellipseCharacter;
-        }
-        return name || '';
+    createTruncateText() {
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        const cache = new Map();
+        const ellipseChar = this.options.truncateText.ellipseCharacter;
+        const fontSizeAndFamily = this.options.truncateText.defaultFontSizeAndFamily;
+        return function truncateText(text, maxWidth, font = fontSizeAndFamily) {
+            const cacheKey = `${text}-${maxWidth}-${font}`;
+            if (cache.has(cacheKey)) {
+                return cache.get(cacheKey);
+            }
+            if (!context) {
+                return text;
+            }
+            context.font = font;
+            if (context.measureText(text).width <= maxWidth) {
+                cache.set(cacheKey, text);
+                return text;
+            }
+            let truncatedText = text;
+            while (context.measureText(truncatedText + ellipseChar).width > maxWidth) {
+                truncatedText = truncatedText.slice(0, -1);
+            }
+            const result = truncatedText + ellipseChar;
+            cache.set(cacheKey, result);
+            return result;
+        };
     }
     resetSvg() {
         this.calculatedHeight = 0;
@@ -253,7 +276,7 @@ class SankeyChart {
             const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
             text.setAttribute("x", String(posX + this.options.marginX));
             text.setAttribute("y", y.toString());
-            const lines = this.createTextLines(node, this.options.nameMaxLength);
+            const lines = this.createTextLines(node, this.options.nodeColumnWith - this.options.nodeWidth);
             lines.forEach((line, i) => {
                 const tspan = document.createElementNS(this.SVG_NS, "tspan");
                 tspan.setAttribute("x", String(posX + this.options.marginX));
@@ -327,15 +350,16 @@ class SankeyChart {
             g.appendChild(targetText);
         }
     }
-    createTextLines(node, nameMaxLength) {
-        const truncatedTitle = this.truncateName(node.title ? node.title : node.name, nameMaxLength);
+    createTextLines(node, maxTextWidth) {
+        const truncatedTitle = this.truncateText ? this.truncateText(node.title ? node.title : node.name, maxTextWidth) : (node.title ? node.title : node.name);
         const lines = [{ text: truncatedTitle, class: "headline" }];
         if (node.subtitle) {
-            const truncatedSubtitle = this.truncateName(node.subtitle, nameMaxLength);
+            const truncatedSubtitle = this.truncateText ? this.truncateText(node.subtitle, maxTextWidth) : node.subtitle;
             lines.splice(1, 0, { text: truncatedSubtitle, class: "subtitle" });
         }
         if (node.tags) {
-            lines.push({ text: node.tags.join(', '), class: "description" });
+            const truncateTags = this.truncateText ? this.truncateText(node.tags.join(', '), maxTextWidth) : node.tags.join(', ');
+            lines.push({ text: truncateTags, class: "description" });
         }
         if (!this.options.renderKindAsColums) {
             lines.push({ text: node.kind.charAt(0).toUpperCase() + node.kind.slice(1), class: "description" });
