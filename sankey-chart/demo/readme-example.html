@@ -14,6 +14,7 @@
   <h1>Sankey Chart Demo 3 - Plain vanilla</h1>
 
   <svg id="sankey-chart-svg" width="900" height="600"></svg>
+  <div id="sankey-chart-contextMenu" style="display: none; position: absolute; background-color: white; border: 1px solid #ccc; padding: 2px;"></div>
 
   <script>
     // Initialize the SankeyChartData with demo data
@@ -92,380 +93,406 @@
 
 
 
-  <h2>Chart Data Options</h2>
-  <div id="options-container">
-    <form id="chart-options-form">
-      <div class="form-group">
-        <label for="defaultColor">Default Color:</label>
-        <div class="default-color-wrapper">
-          <input type="text" id="defaultColor" name="defaultColor" placeholder="e.g., black">
-          <input type="color" id="defaultColorPicker">
-        </div>
+<h2>Chart Data Options</h2>
+<div id="options-container">
+  <form id="chart-options-form">
+    <div class="form-group">
+      <label for="defaultColor">Default Color:</label>
+      <div class="default-color-wrapper">
+        <input type="text" id="defaultColor" name="defaultColor" placeholder="e.g., black">
+        <input type="color" id="defaultColorPicker">
       </div>
-      <div class="form-group">
-        <label>Kinds:</label>
-        <div id="kinds-container"></div>
-        <button type="button" class="add-btn" onclick="addKind()">Add Kind</button>
-      </div>
-      <div class="form-group toggle-group">
-        <label for="showRelatedKinds">Show Related Kinds:</label>
-        <input type="checkbox" id="showRelatedKinds" />
-        <label for="showRelatedKinds"></label>
-      </div>
-      <div class="form-group toggle-group">
-        <label for="selectAndFilter">Select and Filter:</label>
-        <input type="checkbox" id="selectAndFilter" />
-        <label for="selectAndFilter"></label>
-      </div>
-      <div class="form-group">
-        <label>Tag Color Map:</label>
-        <div id="tag-color-map-container"></div>
-        <button type="button" class="add-btn" onclick="addTagColor()">Add Tag Color</button>
-      </div>
-    </form>
-    <div id="preview-container">
-      <h2>Preview Options</h2>
-      <pre id="options-preview"></pre>
     </div>
+    <div class="form-group">
+      <label>Kinds:</label>
+      <div id="kinds-container"></div>
+      <button type="button" class="add-btn" onclick="addKind()">Add Kind</button>
+    </div>
+    <div class="form-group toggle-group">
+      <label for="showRelatedKinds">Show Related Kinds:</label>
+      <input type="checkbox" id="showRelatedKinds" />
+      <label for="showRelatedKinds"></label>
+    </div>
+    <div class="form-group toggle-group">
+      <label for="showSameKindsOnNonSelected">Show Same Kinds on Non-Selected Nodes:</label>
+      <input type="checkbox" id="showSameKindsOnNonSelected" />
+      <label for="showSameKindsOnNonSelected"></label>
+    </div>
+    <div class="form-group toggle-group">
+      <label for="selectAndFilter">Select and Filter:</label>
+      <input type="checkbox" id="selectAndFilter" />
+      <label for="selectAndFilter"></label>
+    </div>
+    <div class="form-group toggle-group">
+      <label for="renderKindAsColums">Render kind as colums:</label>
+      <input type="checkbox" id="renderKindAsColums" />
+      <label for="renderKindAsColums"></label>
+    </div>
+    <div class="form-group">
+      <label>Tag Color Map:</label>
+      <div id="tag-color-map-container"></div>
+      <button type="button" class="add-btn" onclick="addTagColor()">Add Tag Color</button>
+    </div>
+  </form>
+  <div id="preview-container">
+    <h2>Preview Options</h2>
+    <pre id="options-preview"></pre>
   </div>
+</div>
 
 
-  <style>
-    #options-container {
-      display: flex;
-      gap: 20px;
-    }
+<style>
+  #options-container {
+    display: flex;
+    gap: 20px;
+  }
 
-    #chart-options-form {
-      flex: 1;
-    }
+  #chart-options-form {
+    flex: 1;
+  }
 
-    #preview-container {
-      flex: 1;
-      padding: 10px;
-      border-left: 2px solid #ccc;
-      background-color: #f9f9f9;
-    }
+  #preview-container {
+    flex: 1;
+    padding: 10px;
+    border-left: 2px solid #ccc;
+    background-color: #f9f9f9;
+  }
 
-    #options-preview {
-      background-color: #eaeaea;
-      padding: 10px;
-      border-radius: 5px;
-      white-space: pre-wrap;
-    }
+  #options-preview {
+    background-color: #eaeaea;
+    padding: 10px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+  }
 
-    /* Form Styles */
-    .form-group {
-      margin-bottom: 20px;
-    }
+  /* Form Styles */
+  .form-group {
+    margin-bottom: 20px;
+  }
 
-    label {
-      display: block;
-      font-size: 1rem;
-      margin-bottom: 5px;
-      font-weight: bold;
-    }
+  label {
+    display: block;
+    font-size: 1rem;
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
 
-    /* Input Fields */
-    input[type="text"],
-    select {
-      width: 100%;
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      transition: border-color 0.2s;
-    }
+  /* Input Fields */
+  input[type="text"],
+  select {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    transition: border-color 0.2s;
+  }
 
-    input[type="text"]:focus,
-    select:focus {
-      border-color: #007bff;
-      outline: none;
-    }
+  input[type="text"]:focus,
+  select:focus {
+    border-color: #007bff;
+    outline: none;
+  }
 
-    /* Color Inputs (Default and Tag Color Map) */
-    input[type="color"] {
-      border: none;
-      height: 40px;
-      width: 60px;
-      border-radius: 5px;
-      padding: 0;
-      cursor: pointer;
-    }
+  /* Color Inputs (Default and Tag Color Map) */
+  input[type="color"] {
+    border: none;
+    height: 40px;
+    width: 60px;
+    border-radius: 5px;
+    padding: 0;
+    cursor: pointer;
+  }
 
-    .default-color-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-
-    /* Kinds Section (Row Layout) */
-    .kinds {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .kinds input[type="text"] {
-      flex: 1;
-      padding: 8px;
-      font-size: 1rem;
-    }
-
-    .kinds button {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      font-size: 0.9rem;
-      transition: background-color 0.2s;
-    }
-
-    .kinds button:hover {
-      background-color: #b02a37;
-    }
-
-    /* Tag Color Map Section (Row Layout) */
-    .tag-color-map {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-
-    .tag-color-map input[type="text"] {
-      flex: 1;
-      padding: 8px;
-      font-size: 1rem;
-    }
-
-    .tag-color-map button {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 8px 10px;
-      cursor: pointer;
-      border-radius: 5px;
-      font-size: 0.9rem;
-      transition: background-color 0.2s;
-    }
-
-    .tag-color-map button:hover {
-      background-color: #b02a37;
-    }
-
-    /* Add Buttons */
-    .add-btn {
-      display: inline-block;
-      margin-top: 10px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      padding: 8px 15px;
-      cursor: pointer;
-      border-radius: 5px;
-      font-size: 0.9rem;
-      transition: background-color 0.2s;
-    }
-
-    .add-btn:hover {
-      background-color: #0056b3;
-    }
+  .default-color-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
 
+  /* Kinds Section (Row Layout) */
+  .kinds {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .kinds input[type="text"] {
+    flex: 1;
+    padding: 8px;
+    font-size: 1rem;
+  }
+
+  .kinds button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .kinds button:hover {
+    background-color: #b02a37;
+  }
+
+  /* Tag Color Map Section (Row Layout) */
+  .tag-color-map {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .tag-color-map input[type="text"] {
+    flex: 1;
+    padding: 8px;
+    font-size: 1rem;
+  }
+
+  .tag-color-map button {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .tag-color-map button:hover {
+    background-color: #b02a37;
+  }
+
+  /* Add Buttons */
+  .add-btn {
+    display: inline-block;
+    margin-top: 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    transition: background-color 0.2s;
+  }
+
+  .add-btn:hover {
+    background-color: #0056b3;
+  }
 
 
-    /* Form Group for Toggle Buttons */
-    .form-group.toggle-group {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .form-group.toggle-group label {
-      margin: 0;
-      font-weight: bold;
-      color: #333;
-    }
-
-    /* Toggle Button */
-    input[type="checkbox"] {
-      display: none;
-    }
-
-    input[type="checkbox"]+label {
-      display: inline-block;
-      width: 60px;
-      height: 30px;
-      background-color: #ddd;
-      border-radius: 15px;
-      position: relative;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.2);
-    }
-
-    input[type="checkbox"]:checked+label {
-      background-color: #007bff;
-    }
-
-    input[type="checkbox"]+label::before {
-      content: "";
-      position: absolute;
-      width: 24px;
-      height: 24px;
-      background-color: #fff;
-      border-radius: 50%;
-      top: 3px;
-      left: 3px;
-      transition: transform 0.3s;
-    }
-
-    input[type="checkbox"]:checked+label::before {
-      transform: translateX(30px);
-    }
-  </style>
-  
-  <script>
 
 
-    function initializeUI() {
-      // Initialize default color
-      const defaultColorInput = document.getElementById('defaultColor');
-      const defaultColorPicker = document.getElementById('defaultColorPicker');
+  /* Form Group for Toggle Buttons */
+  .form-group.toggle-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-      // Initialize default color
-      defaultColorInput.value = chartDataOptions.defaultColor;
-      defaultColorPicker.value = chartDataOptions.defaultColor;
+  .form-group.toggle-group label {
+    margin: 0;
+    font-weight: bold;
+    color: #333;
+  }
 
-      // Sync text input and color picker
-      const syncDefaultColor = (value) => {
-        chartDataOptions.defaultColor = value;
-        defaultColorInput.value = value;
-        defaultColorPicker.value = value;
-        updatePreview();
-      };
+  /* Toggle Button */
+  input[type="checkbox"] {
+    display: none;
+  }
 
-      defaultColorInput.addEventListener('input', (e) => syncDefaultColor(e.target.value));
-      defaultColorPicker.addEventListener('input', (e) => syncDefaultColor(e.target.value));
+  input[type="checkbox"]+label {
+    display: inline-block;
+    width: 60px;
+    height: 30px;
+    background-color: #ddd;
+    border-radius: 15px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.2);
+  }
 
+  input[type="checkbox"]:checked+label {
+    background-color: #007bff;
+  }
 
-      // Initialize kinds
-      const kindsContainer = document.getElementById('kinds-container');
-      chartDataOptions.kinds.forEach(kind => {
-        const div = document.createElement('div');
-        div.classList.add('kinds');
-        div.innerHTML = `
-        <input type="text" placeholder="Name" class="kind-name" value="${kind.name}" oninput="updateOptions()">
-        <input type="text" placeholder="Title" class="kind-title" value="${kind.title}" oninput="updateOptions()">
-        <button type="button" onclick="this.parentElement.remove(); updateOptions()">Remove</button>
-      `;
-        kindsContainer.appendChild(div);
-      });
+  input[type="checkbox"]+label::before {
+    content: "";
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    background-color: #fff;
+    border-radius: 50%;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s;
+  }
 
+  input[type="checkbox"]:checked+label::before {
+    transform: translateX(30px);
+  }
+</style>
 
-      const showRelatedKindsToggle = document.getElementById('showRelatedKinds');
-      const selectAndFilterToggle = document.getElementById('selectAndFilter');
-
-      // Initialize toggle states
-      showRelatedKindsToggle.checked = chartDataOptions.showRelatedKinds;
-      selectAndFilterToggle.checked = chartDataOptions.selectAndFilter;
-
-      // Sync with chartDataOptions
-      showRelatedKindsToggle.addEventListener('change', () => {
-        chartDataOptions.showRelatedKinds = showRelatedKindsToggle.checked;
-        updatePreview();
-      });
-
-      selectAndFilterToggle.addEventListener('change', () => {
-        chartDataOptions.selectAndFilter = selectAndFilterToggle.checked;
-        updatePreview();
-      });
+<script>
 
 
-      // Initialize tag color map
-      const tagColorMapContainer = document.getElementById('tag-color-map-container');
-      for (const [tag, color] of Object.entries(chartDataOptions.tagColorMap)) {
-        const div = document.createElement('div');
-        div.classList.add('tag-color-map');
-        div.innerHTML = `
-        <input type="text" placeholder="Tag" class="tag-name" value="${tag}" oninput="updateOptions()">
-        <input type="color" class="tag-color" value="${color}" onchange="updateOptions()">
-        <button type="button" onclick="this.parentElement.remove(); updateOptions()">Remove</button>
-      `;
-        tagColorMapContainer.appendChild(div);
-      }
+  function initializeUI() {
+    // Initialize default color
+    const defaultColorInput = document.getElementById('defaultColor');
+    const defaultColorPicker = document.getElementById('defaultColorPicker');
 
-      // Update preview
+    // Initialize default color
+    defaultColorInput.value = chartDataOptions.defaultColor;
+    defaultColorPicker.value = chartDataOptions.defaultColor;
+
+    // Sync text input and color picker
+    const syncDefaultColor = (value) => {
+      chartDataOptions.defaultColor = value;
+      defaultColorInput.value = value;
+      defaultColorPicker.value = value;
       updatePreview();
-    }
+    };
 
-    function addKind() {
-      const container = document.getElementById('kinds-container');
+    defaultColorInput.addEventListener('input', (e) => syncDefaultColor(e.target.value));
+    defaultColorPicker.addEventListener('input', (e) => syncDefaultColor(e.target.value));
+
+
+    // Initialize kinds
+    const kindsContainer = document.getElementById('kinds-container');
+    chartDataOptions.kinds.forEach(kind => {
       const div = document.createElement('div');
       div.classList.add('kinds');
       div.innerHTML = `
-      <input type="text" placeholder="Name" class="kind-name" oninput="updateOptions()">
-      <input type="text" placeholder="Title" class="kind-title" oninput="updateOptions()">
+      <input type="text" placeholder="Name" class="kind-name" value="${kind.name}" oninput="updateOptions()">
+      <input type="text" placeholder="Title" class="kind-title" value="${kind.title}" oninput="updateOptions()">
       <button type="button" onclick="this.parentElement.remove(); updateOptions()">Remove</button>
     `;
-      container.appendChild(div);
-    }
+      kindsContainer.appendChild(div);
+    });
 
-    function addTagColor() {
-      const container = document.getElementById('tag-color-map-container');
+
+    const showRelatedKindsToggle = document.getElementById('showRelatedKinds');
+    const showSameKindsOnNonSelectedToggle = document.getElementById('showSameKindsOnNonSelected');
+    const selectAndFilterToggle = document.getElementById('selectAndFilter');
+    const renderKindAsColumsToggle = document.getElementById('renderKindAsColums');
+
+    // Initialize toggle states
+    showRelatedKindsToggle.checked = chartDataOptions.showRelatedKinds;
+    showSameKindsOnNonSelectedToggle.checked = chartDataOptions.showSameKindsOnNonSelected;
+    selectAndFilterToggle.checked = chartDataOptions.selectAndFilter;
+    renderKindAsColumsToggle.checked = chartDataOptions.renderKindAsColums;
+
+    // Sync with chartDataOptions
+    showRelatedKindsToggle.addEventListener('change', () => {
+      chartDataOptions.showRelatedKinds = showRelatedKindsToggle.checked;
+      updatePreview();
+    });
+
+    showSameKindsOnNonSelectedToggle.addEventListener('change', () => {
+      chartDataOptions.showSameKindsOnNonSelected = showSameKindsOnNonSelectedToggle.checked;
+      updatePreview();
+    });
+
+    selectAndFilterToggle.addEventListener('change', () => {
+      chartDataOptions.selectAndFilter = selectAndFilterToggle.checked;
+      updatePreview();
+    });
+
+    renderKindAsColumsToggle.addEventListener('change', () => {
+      chartDataOptions.renderKindAsColums = renderKindAsColumsToggle.checked;
+      updatePreview();
+    });
+
+    // Initialize tag color map
+    const tagColorMapContainer = document.getElementById('tag-color-map-container');
+    for (const [tag, color] of Object.entries(chartDataOptions.tagColorMap)) {
       const div = document.createElement('div');
       div.classList.add('tag-color-map');
       div.innerHTML = `
-      <input type="text" placeholder="Tag" class="tag-name" oninput="updateOptions()">
-      <input type="color" class="tag-color" onchange="updateOptions()">
+      <input type="text" placeholder="Tag" class="tag-name" value="${tag}" oninput="updateOptions()">
+      <input type="color" class="tag-color" value="${color}" onchange="updateOptions()">
       <button type="button" onclick="this.parentElement.remove(); updateOptions()">Remove</button>
     `;
-      container.appendChild(div);
+      tagColorMapContainer.appendChild(div);
     }
 
-    function updateOptions() {
-      // Update default color
-      chartDataOptions.defaultColor = document.getElementById('defaultColor').value;
+    // Update preview
+    updatePreview();
+  }
 
-      // Update kinds
-      const kinds = Array.from(document.querySelectorAll('.kinds')).map(kind => ({
-        name: kind.querySelector('.kind-name').value,
-        title: kind.querySelector('.kind-title').value
-      }));
-      chartDataOptions.kinds = kinds;
+  function addKind() {
+    const container = document.getElementById('kinds-container');
+    const div = document.createElement('div');
+    div.classList.add('kinds');
+    div.innerHTML = `
+    <input type="text" placeholder="Name" class="kind-name" oninput="updateOptions()">
+    <input type="text" placeholder="Title" class="kind-title" oninput="updateOptions()">
+    <button type="button" onclick="this.parentElement.remove(); updateOptions()">Remove</button>
+  `;
+    container.appendChild(div);
+  }
 
-      // Update boolean values
-      chartDataOptions.showRelatedKinds = document.getElementById('showRelatedKinds').checked;
-      chartDataOptions.selectAndFilter = document.getElementById('selectAndFilter').checked;
+  function addTagColor() {
+    const container = document.getElementById('tag-color-map-container');
+    const div = document.createElement('div');
+    div.classList.add('tag-color-map');
+    div.innerHTML = `
+    <input type="text" placeholder="Tag" class="tag-name" oninput="updateOptions()">
+    <input type="color" class="tag-color" onchange="updateOptions()">
+    <button type="button" onclick="this.parentElement.remove(); updateOptions()">Remove</button>
+  `;
+    container.appendChild(div);
+  }
 
-      // Update tag color map
-      const tagColorMap = {};
-      Array.from(document.querySelectorAll('.tag-color-map')).forEach(tag => {
-        const name = tag.querySelector('.tag-name').value;
-        const color = tag.querySelector('.tag-color').value;
-        if (name && color) tagColorMap[name] = color;
-      });
-      chartDataOptions.tagColorMap = tagColorMap;
+  function updateOptions() {
+    // Update default color
+    chartDataOptions.defaultColor = document.getElementById('defaultColor').value;
 
-      // Update the preview panel
-      updatePreview();
-    }
+    // Update kinds
+    const kinds = Array.from(document.querySelectorAll('.kinds')).map(kind => ({
+      name: kind.querySelector('.kind-name').value,
+      title: kind.querySelector('.kind-title').value
+    }));
+    chartDataOptions.kinds = kinds;
 
-    function updatePreview() {
-      sankeyChartData.setOptions(chartDataOptions);
-      sankeyChart.render();
-      const previewElement = document.getElementById('options-preview');
-      previewElement.textContent = JSON.stringify(chartDataOptions, null, 2);
-    }
+    // Update boolean values
+    chartDataOptions.showRelatedKinds = document.getElementById('showRelatedKinds').checked;
+    chartDataOptions.showSameKindsOnNonSelected = document.getElementById('showSameKindsOnNonSelected').checked;
+    chartDataOptions.selectAndFilter = document.getElementById('selectAndFilter').checked;
+    chartDataOptions.renderKindAsColums = document.getElementById('renderKindAsColums').checked;
 
-    // Initialize the UI when the page loads
-    window.onload = initializeUI;
-  </script>
+    // Update tag color map
+    const tagColorMap = {};
+    Array.from(document.querySelectorAll('.tag-color-map')).forEach(tag => {
+      const name = tag.querySelector('.tag-name').value;
+      const color = tag.querySelector('.tag-color').value;
+      if (name && color) tagColorMap[name] = color;
+    });
+    chartDataOptions.tagColorMap = tagColorMap;
+
+    // Update the preview panel
+    updatePreview();
+  }
+
+  function updatePreview() {
+    sankeyChartData.setOptions(chartDataOptions);
+    sankeyChart.setOptions(chartDataOptions);
+    sankeyChart.render();
+    const previewElement = document.getElementById('options-preview');
+    previewElement.textContent = JSON.stringify(chartDataOptions, null, 2);
+  }
+
+  // Initialize the UI when the page loads
+  window.onload = initializeUI;
+</script>
 
 </body>
 

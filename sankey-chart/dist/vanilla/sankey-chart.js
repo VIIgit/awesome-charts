@@ -287,7 +287,7 @@ class SankeyChart {
             });
             g.appendChild(text);
             if (!(node === null || node === void 0 ? void 0 : node.placeHolder)) {
-                this.addHoverAndClickEvents(rectHover, node);
+                this.addHoverAndClickEvents(g, rectHover, node);
             }
             svgGroup.appendChild(g);
             if (isSelected && !(node === null || node === void 0 ? void 0 : node.placeHolder) && this.contextMenuElement) {
@@ -366,8 +366,8 @@ class SankeyChart {
         }
         return lines;
     }
-    addHoverAndClickEvents(rectHover, node) {
-        rectHover.addEventListener('click', (event) => {
+    addHoverAndClickEvents(group, rectHover, node) {
+        group.addEventListener('click', (event) => {
             var _a, _b;
             (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.selectNode(node);
             this.render();
@@ -375,12 +375,11 @@ class SankeyChart {
                 this.eventHandler.dispatchEvent('fetchData', { node });
             }
             this.eventHandler.dispatchEvent('selectionChanged', { node, position: { y: this.selectedNodePositionY } });
+        });
+        group.addEventListener('mouseenter', (event) => {
             rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
         });
-        rectHover.addEventListener('mouseover', (event) => {
-            rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
-        });
-        rectHover.addEventListener('mouseout', (event) => {
+        group.addEventListener('mouseleave', (event) => {
             rectHover.setAttribute("opacity", "0");
         });
     }
@@ -552,6 +551,6 @@ class SankeyChart {
         });
     }
     calculateGap(iterations) {
-        return iterations * 3;
+        return Math.min(80, iterations * 3);
     }
 }

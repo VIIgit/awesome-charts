@@ -95,14 +95,6 @@ class SankeyChartData {
                 }
                 dataByKinds[node.kind].push(node);
             });
-            for (const kind in dataByKinds) {
-                if (this.options.selectAndFilter && node && kind === node.kind) {
-                    dataByKinds[kind].sort((a, b) => a.name === node.name ? -1 : (b.name === node.name ? 1 : a.name.localeCompare(b.name)));
-                }
-                else {
-                    dataByKinds[kind].sort((a, b) => a.name.localeCompare(b.name));
-                }
-            }
             return dataByKinds;
         };
         if (!node) {
@@ -146,9 +138,10 @@ class SankeyChartData {
             }
             this.nodesByKinds = groupByKind(this.nodes);
         }
+        this.sortNodes(this.nodes);
         return this.selectedNode;
     }
-    sortNodes(nodes) {
+    sortNodesAlpabetically(nodes) {
         const undefinedTag = (this.options.noTag || '') + this.options.noTagSuffixCharacter;
         nodes.sort((a, b) => {
             if (a.name === undefinedTag && b.name !== undefinedTag) {
@@ -160,6 +153,69 @@ class SankeyChartData {
             else {
                 return 0;
             }
+        });
+    }
+    sortNodes(nodes) {
+        const undefinedTag = (this.options.noTag || '') + this.options.noTagSuffixCharacter;
+        const selectedNode = this.getSelectedNode();
+        if (!selectedNode) {
+            this.sortNodesAlpabetically(this.getNodes());
+            return;
+        }
+        let previousGroupByKind;
+        let previousKinds;
+        const relations = this.getRelations();
+        this.options.kinds.forEach(kind => {
+            const currentKinds = this.nodesByKinds[kind.name];
+            if (currentKinds) {
+                if (this.options.selectAndFilter && kind.name === (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind)) {
+                    this.nodesByKinds[kind.name].sort((a, b) => a.name === selectedNode.name ? -1 : (b.name === selectedNode.name ? 1 : a.name.localeCompare(b.name)));
+                }
+                else {
+                    this.nodesByKinds[kind.name].sort((a, b) => {
+                        if (previousKinds) {
+                            const aPrevousNodes = relations.filter(rel => rel.target.name === a.name && rel.target.kind === a.kind);
+                            const bPrevousNodes = relations.filter(rel => rel.target.name === b.name && rel.target.kind === b.kind);
+                            const aIndex = previousKinds.findIndex(item => aPrevousNodes.some(rel => rel.source.name === item.name));
+                            const bIndex = previousKinds.findIndex(item => bPrevousNodes.some(rel => rel.source.name === item.name));
+                            if (aIndex !== -1 || bIndex !== -1) {
+                                if (aIndex === bIndex) {
+                                    return a.name.localeCompare(b.name);
+                                }
+                                return bIndex > aIndex ? -1 : 1;
+                            }
+                        }
+                        return a.name.localeCompare(b.name);
+                    });
+                }
+                previousKinds = currentKinds;
+            }
+        });
+        this.sortRelations();
+    }
+    sortRelations() {
+        var _a;
+        const combinedNodes = {};
+        const shift = 100000;
+        Object.keys(this.nodesByKinds).forEach(kind => {
+            let i = shift;
+            this.nodesByKinds[kind].forEach(node => {
+                combinedNodes[kind + '::' + node.name] = (i++);
+            });
+        });
+        (_a = this.originalData.relations) === null || _a === void 0 ? void 0 : _a.sort((a, b) => {
+            var _a, _b, _c, _d;
+            const aSourceKey = `${a.source.kind}::${a.source.name}`;
+            const bSourceKey = `${b.source.kind}::${b.source.name}`;
+            const aTargetKey = `${a.target.kind}::${a.target.name}`;
+            const bTargetKey = `${b.target.kind}::${b.target.name}`;
+            const aSourceIndex = (_a = combinedNodes[aSourceKey]) !== null && _a !== void 0 ? _a : Number.MAX_SAFE_INTEGER;
+            const bSourceIndex = (_b = combinedNodes[bSourceKey]) !== null && _b !== void 0 ? _b : Number.MAX_SAFE_INTEGER;
+            const aTargetIndex = (_c = combinedNodes[aTargetKey]) !== null && _c !== void 0 ? _c : Number.MAX_SAFE_INTEGER;
+            const bTargetIndex = (_d = combinedNodes[bTargetKey]) !== null && _d !== void 0 ? _d : Number.MAX_SAFE_INTEGER;
+            const aIndex = aSourceIndex * shift + aTargetIndex;
+            const bIndex = bSourceIndex * shift + bTargetIndex;
+            return aIndex - bIndex;
         });
     }
     initializeSortRelations() {
@@ -270,7 +326,7 @@ class SankeyChartData {
     }
     filterDependencies(selectedNode, selectedKind) {
         let relatedRelations = [];
-        const kindNames = this.getKinds().map(kind => kind.name);
+        const kindNames = this.options.kinds.map(k => k.name);
         let targetRelations = this.originalData.relations.filter(relation => {
             return relation.source.kind === selectedNode.kind && relation.source.name === selectedNode.name && (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true);
         });
@@ -285,9 +341,7 @@ class SankeyChartData {
             targetRelations.push(...selectedSources);
         }
         const targetKeys = targetRelations ? [...new Set(targetRelations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`))] : [];
-        const targetTargetRelations = this.originalData.relations.filter(relation => {
-            return (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true) && targetKeys.includes(relation.source.kind + '::' + relation.source.name);
-        });
+        const targetTargetRelations = this.targetTargetRelations(selectedNode.kind, kindNames, targetKeys);
         if (selectedKind === null || selectedKind === void 0 ? void 0 : selectedKind.includeAlternative) {
             const relatedKindKeys = [...new Set(targetRelations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`))];
             relatedRelations = this.originalData.relations.filter(relation => {
@@ -307,6 +361,16 @@ class SankeyChartData {
             relations: distinctRelations,
             hasRelatedSourceOfOtherKinds: relatedRelations.length > 0
         };
+    }
+    targetTargetRelations(kind, kindNames, targetKeys) {
+        if (this.options.showSameKindsOnNonSelected) {
+            return this.originalData.relations.filter(relation => {
+                return (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true) && targetKeys.includes(relation.source.kind + '::' + relation.source.name);
+            });
+        }
+        return this.originalData.relations.filter(relation => {
+            return ((relation.target.kind === relation.source.kind) ? relation.source.kind === kind : true) && (kindNames.length > 0 ? kindNames.includes(relation.target.kind) : true) && targetKeys.includes(relation.source.kind + '::' + relation.source.name);
+        });
     }
     filterNodes(relations) {
         const relationKeys = relations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`);

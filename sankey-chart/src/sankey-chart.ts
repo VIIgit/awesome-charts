@@ -103,8 +103,7 @@ class SankeyChart {
   private svgElement: SVGSVGElement;
   private nodePositions: Record<string, NodePosition>;
   private eventHandler: EventHandler;
-  private contextMenuElement?: HTMLElement;
-  private contextMenuDynamicLinks?: (context: any) => { label: string; url: string; target?: string }[];
+  private contextMenuCallbackFunction?: (event: MouseEvent, node: ChartNode) => void;
   private className: {
     NODE_TYPE_TITLE: string;
     NODE_TITLE: string;
@@ -160,8 +159,7 @@ class SankeyChart {
     this.svgElement = svgElement;
     this.nodePositions = {};
     this.eventHandler = new EventHandler();
-    this.contextMenuElement = undefined;
-    this.contextMenuDynamicLinks = undefined;
+    this.contextMenuCallbackFunction = undefined;
     this.className = {
       NODE_TYPE_TITLE: "node-kind-title",
       NODE_TITLE: "node-title",
@@ -196,10 +194,9 @@ class SankeyChart {
     }
   }
 
-  public addContextMenuListeners(contextMenuElement: HTMLElement, callbackFunction: (context: any) => { label: string; url: string; target?: string }[]): void {
+  public addContextMenuListeners(callbackFunction: (event: MouseEvent, node: ChartNode) => void): void {
     if (typeof callbackFunction === 'function') {
-      this.contextMenuElement = contextMenuElement;
-      this.contextMenuDynamicLinks = callbackFunction;
+      this.contextMenuCallbackFunction = callbackFunction;
     }
   }
 
@@ -261,14 +258,15 @@ class SankeyChart {
     this.svgElement.setAttribute('width', width.toString());
   }
 
-  private renderElipsisMenu(x: number, y: number): SVGGElement {
+  private renderElipsisMenu(x: number, y: number, selectedNode: ChartNode): SVGGElement {
     const menuGroup = document.createElementNS(this.SVG_NS, "g") as SVGGElement;
     menuGroup.setAttribute('id', 'ellipsisMenu');
     menuGroup.setAttribute('style', 'cursor: pointer;');
     menuGroup.setAttribute('transform', `translate(${x + 2.5}, ${y})`);
-    menuGroup.addEventListener('click', this.showContextMenu);
 
     const rect = this.createRect(-2.5, 0, this.options.nodeWidth, 22, 'black', '0.2');
+    rect.setAttribute('rx', '5');
+    rect.setAttribute('ry', '5');
     menuGroup.appendChild(rect);
 
     for (let iy = 5; iy <= 15; iy += 5) {
@@ -276,52 +274,15 @@ class SankeyChart {
       menuGroup.appendChild(circle);
     }
 
+    menuGroup.addEventListener('click', (event: MouseEvent): void => {
+      if (this.contextMenuCallbackFunction) {
+        this.contextMenuCallbackFunction(event, selectedNode);
+        event.stopPropagation();
+      }
+    });
+
     return menuGroup;
   }
-
-  private showContextMenu = (event: MouseEvent): void => {
-    const contextMenu = this.contextMenuElement;
-    const context = { node: this.chartData?.getSelectedNode() }; // Get your dynamic context here
-
-    // Generate menu items dynamically based on the context
-    const menuItems = this.contextMenuDynamicLinks?.(context) || [];
-    if (menuItems.length > 0) {
-      contextMenu!.innerHTML = '';
-      menuItems.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'context-item';
-        div.textContent = item.label;
-        div.setAttribute('data-url', item.url);
-        div.setAttribute('data-target', item.target || '');
-        div.addEventListener('click', this.openPage);
-
-        contextMenu!.appendChild(div);
-      });
-
-      document.addEventListener('click', this.closeContextMenu);
-      event.preventDefault();
-
-      contextMenu!.style.left = `${event.clientX}px; contextMenu!.style.top = ${event.clientY}px`;
-      contextMenu!.style.display = 'block';
-    }
-  };
-
-  private openPage = (event: MouseEvent): void => {
-    const target = event.currentTarget as HTMLElement;
-    const url = target.getAttribute('data - url');
-    const targetAttr = target.getAttribute('data - target') || '_self';
-    if (url) {
-      window.open(url, targetAttr);
-    }
-  };
-
-  private closeContextMenu = (): void => {
-    const contextMenu = this.contextMenuElement;
-    if (contextMenu) {
-      contextMenu.style.display = 'none';
-      document.removeEventListener('click', this.closeContextMenu);
-    }
-  };
 
   private deepMerge(target: any, source: any): any {
     if (typeof target !== 'object' || target === null || typeof source !== 'object' || source === null) {
@@ -379,7 +340,7 @@ class SankeyChart {
       node.textLinesHeight = linesHeight;
 
       const isSelected = selectedNode && selectedNode.name === node.name && selectedNode.kind === node.kind ? true : false;
-      const rectHeight = 2 * this.options.marginY + (node.cardinality ? this.options.nodeLineHeight : 0) + Math.max(linesHeight, linesHeight + sourceRelations.height, targetRelations.height);
+      const rectHeight = 2 * this.options.marginY + Math.max(linesHeight, linesHeight + (sourceRelations.height > 0 ? sourceRelations.height + 12 : 0), (targetRelations.height > 0 ? targetRelations.height + 12 : 0));
       const y = this.options.marginY + overallY;
       const color = node.color || this.options.defaultNodeColor;
       let posX = positionX;
@@ -442,13 +403,13 @@ class SankeyChart {
       g.appendChild(text);
 
       if (!node?.placeHolder) {
-        this.addHoverAndClickEvents(rectHover, node);
+        this.addHoverAndClickEvents(g, rectHover, node);
       }
 
       svgGroup.appendChild(g);
 
-      if (isSelected && !node?.placeHolder && this.contextMenuElement) {
-        svgGroup.appendChild(this.renderElipsisMenu(posX, y));
+      if (isSelected && !node?.placeHolder && this.contextMenuCallbackFunction) {
+        svgGroup.appendChild(this.renderElipsisMenu(posX, y, node));
       }
 
       this.nodePositions[node.kind + '::' + node.name] = {
@@ -530,20 +491,19 @@ class SankeyChart {
     return lines;
   }
 
-  private addHoverAndClickEvents(rectHover: SVGRectElement, node: ChartNode) {
-    rectHover.addEventListener('click', (event) => {
+  private addHoverAndClickEvents(group: SVGGElement, rectHover: SVGRectElement, node: ChartNode) {
+    group.addEventListener('click', (event) => {
       this.chartData?.selectNode(node);
       this.render();
       if (node?.cardinality?.fetchMore) {
         this.eventHandler.dispatchEvent('fetchData', { node });
       }
       this.eventHandler.dispatchEvent('selectionChanged', { node, position: { y: this.selectedNodePositionY } });
+    });
+    group.addEventListener('mouseenter', (event) => {
       rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
     });
-    rectHover.addEventListener('mouseover', (event) => {
-      rectHover.setAttribute("opacity", this.options.selectedNode.hoverOpacity.toString());
-    });
-    rectHover.addEventListener('mouseout', (event) => {
+    group.addEventListener('mouseleave', (event) => {
       rectHover.setAttribute("opacity", "0");
     });
   }
@@ -646,7 +606,7 @@ class SankeyChart {
       if (analytics?.traffic ?? 0 > 0) {
         const text = this.createSvgText('', [this.className.RELATION]);
         text.setAttribute("x", String(targetPosition.x - this.options.marginY));
-        text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + 8));
+        text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + selectedTarget));
         text.setAttribute("text-anchor", "end");
         const tspanEnv = document.createElementNS(this.SVG_NS, "tspan");
         tspanEnv.textContent = analytics?.environment || '';
@@ -749,7 +709,7 @@ class SankeyChart {
   }
 
   private calculateGap(iterations: number): number {
-    return iterations * 3;
+    return Math.min(80, iterations * 3);
   }
 }
 export default SankeyChart;
