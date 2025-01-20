@@ -31,11 +31,19 @@ interface Data {
   nodes?: Data[];
   color?: string;
   relations?: Relation[];
+  magnitudes?: Magnitude[];
 }
+
 
 interface BasicNode {
   kind: string;
   name: string;
+}
+
+interface Magnitude {
+  nodes: BasicNode[];
+  value: number; // total
+  decomposition: { [key: string]: number }; // the sum MUST not exceed the value
 }
 
 interface Analytics {
@@ -78,7 +86,7 @@ class SankeyChartData {
   selectedNode?: Node;
   nodes: Node[];
   dependencies: { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean; };
-  originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[] };
+  originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[], };
   nodesByKinds: { [key: string]: Node[] };
   title?: KindMeta;
   options: SankeyChartDataOptions;
@@ -537,4 +545,4 @@ class SankeyChartData {
     return originData;
   }
 }
-export { SankeyChartData, Node, Relation, SankeyChartDataOptions, Kind, Analytics, BasicNode, IncludeKind, Cardinality };
+export { SankeyChartData, Node, Relation, Magnitude, SankeyChartDataOptions, Kind, Analytics, BasicNode, IncludeKind, Cardinality };
