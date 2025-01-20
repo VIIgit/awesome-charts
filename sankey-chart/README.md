@@ -1,4 +1,3 @@
-
 # Sankey Chart
 
 ## Overview
@@ -8,7 +7,7 @@ This repository contains a Sankey chart library, and resources for creating beau
 ![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/example1.png "Screenshot")
 [Live Demo on CodePen](https://codepen.io/w-vii/pen/pvzEPbd?editors=1010)
 
-## Quick Start Example
+### Quick Start Example
 
 Here's a simple example using plain vanilla javascripts without any third party dependencies:
 
@@ -84,6 +83,118 @@ Here's a simple example using plain vanilla javascripts without any third party 
 
   </script>
 </body>
+```
+
+### Add Context Menu
+
+![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/context-menu.png "Screenshot")
+
+In this section, we demonstrate how to add a custom context menu to the Sankey chart. A context menu provides additional options and actions when a user right-clicks on a selected element within the chart. This can enhance the user experience by offering quick access to relevant features.
+
+Below is an example of how to create and display a context menu using plain HTML, CSS, and JavaScript:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Context Menu Example</title>
+  <style>
+    .context-menu {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      background-color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+      width: 150px;
+      z-index: 1000;
+    }
+
+    .context-menu ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .context-menu .menu-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      font-size: 1em;
+      color: #333;
+    }
+
+    .context-menu .menu-item:hover {
+      background-color: #007bff;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="contextMenu" class="context-menu"></div>
+
+  <script>
+    
+    const sankeyChartData = new SankeyChartData(chartData, chartDataOptions);
+    sankeyChartData.selectNode({ kind: "product", name: "Product 3" });
+    sankeyChartData.selectNode(undefined);
+
+    const svg = document.getElementById('sankey-chart-svg');
+    const sankeyChart = new SankeyChart(svg);
+    sankeyChart.setData(sankeyChartData);
+    sankeyChart.render();
+
+    /* Add Context Menu */
+    const contextMenu = document.getElementById("sankey-chart-contextMenu");
+
+    function populateContextMenu(event, selectedNode) {
+      contextMenu.innerHTML = "";
+      contextMenu.style.display = "block";
+      contextMenu.style.left = `${event.pageX}px`;
+      contextMenu.style.top = `${event.pageY}px`;
+
+      const items = [
+        {
+          label: "Open " + selectedNode.name,
+          url: "https://example.com/item1",
+          target: "same"
+        },
+        { label: "Menu Item 2...", url: "https://example.com/item2" },
+        { label: "Menu Item 3...", url: "https://example.com/item3" }
+      ];
+
+      const list = document.createElement("ul");
+
+      contextMenu.appendChild(list);
+
+      // Add new menu items
+      items.forEach((item) => {
+        const menuItem = document.createElement("li");
+        menuItem.classList.add("menu-item");
+        menuItem.textContent = item.label;
+        menuItem.addEventListener("click", (event) => {
+          alert(`You clicked on ${item.label}`);
+          list.style.display = "none";
+        });
+        list.appendChild(menuItem);
+      });
+
+      return items;
+    }
+
+    sankeyChart.addContextMenuListeners(populateContextMenu);
+
+    // Close menu if clicked outside
+    document.addEventListener("click", (event) => {
+      contextMenu.style.display = "none";
+    });
+  </script>
+</body>
+</html>
 ```
 
 ## CDN

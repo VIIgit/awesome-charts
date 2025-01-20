@@ -27,7 +27,7 @@ class Preview {
    *   <div class="preview-pane">
    *     <svg id="previewSVG">
    *       <!-- Scaled SVG -->
-   *       <use href="#largeSVG"  />
+   *       <use href="#largeSVG" pointer-events="none" />
    *       <!-- Movable overlay -->
    *       <rect id="overlay" x="0" y="0" fill="rgba(255, 255, 255, 0.5)" stroke="black" />
    *     </svg>
@@ -58,6 +58,7 @@ class Preview {
     this.mainViewport = mainViewport;
 
     this.initialize();
+    this.setupScrollSync();
   }
 
   public initialize(): void {
@@ -152,6 +153,64 @@ class Preview {
 
     // Change cursor to grab when hovering over the overlay
     this.overlay.style.cursor = "grab";
+  }
+
+  private setupScrollSync(): void {
+    const svgWidth = this.largeSVG.width.baseVal.value;
+    const svgHeight = this.largeSVG.height.baseVal.value;
+
+    const scale = parseFloat(this.previewSVG.getAttribute("width")!) / svgWidth;
+
+    this.mainViewport.addEventListener("scroll", () => {
+      const scrollLeft = this.mainViewport.scrollLeft;
+      const scrollTop = this.mainViewport.scrollTop;
+
+      // Scale the scroll position to the preview pane
+      const scaledX = scrollLeft * scale;
+      const scaledY = scrollTop * scale;
+
+      // Update the overlay position in the preview pane
+      this.overlay.setAttribute("x", scaledX.toString());
+      this.overlay.setAttribute("y", scaledY.toString());
+    });
+
+    this.overlay.addEventListener("mousedown", (e: MouseEvent) => {
+      let isDragging = true;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      const rect = this.overlay.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+
+      const onMouseMove = (event: MouseEvent) => {
+        if (!isDragging) return;
+
+        const previewRect = this.previewSVG.getBoundingClientRect();
+        const newX = event.clientX - previewRect.left - offsetX;
+        const newY = event.clientY - previewRect.top - offsetY;
+
+        const clampedX = Math.max(0, Math.min(newX, svgWidth * scale - this.overlay.width.baseVal.value));
+        const clampedY = Math.max(0, Math.min(newY, svgHeight * scale - this.overlay.height.baseVal.value));
+
+        // Update overlay position
+        this.overlay.setAttribute("x", clampedX.toString());
+        this.overlay.setAttribute("y", clampedY.toString());
+
+        // Sync the main viewport scroll position
+        this.mainViewport.scrollLeft = clampedX / scale;
+        this.mainViewport.scrollTop = clampedY / scale;
+      };
+
+      const onMouseUp = () => {
+        isDragging = false;
+        document.removeEventListener("mousemove", onMouseMove);
+        document.removeEventListener("mouseup", onMouseUp);
+      };
+
+      document.addEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseup", onMouseUp);
+    });
   }
 }
 
