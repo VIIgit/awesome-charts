@@ -1,6 +1,6 @@
 {
   "name": "@vii7/awesome-sankey-chart",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "SVG Charts - Donut and Sankey",
   "main": "./dist/bundled/index.bundle.js",
   "module": "./dist/plain/index.js",
@@ -17,7 +17,7 @@
     "test": "echo no test",
     "build:plain": "tsc",
     "mkdir-if-not-exist": "mkdir -p ./dist/vanilla",
-    "build:vanilla": "tsc && npm run mkdir-if-not-exist && sed '$d' dist/event-handler.js > dist/vanilla/event-handler.js && sed '$d' dist/sankey-chart-data.js > dist/vanilla/sankey-chart-data.js && sed '1d;$d;' dist/sankey-chart.js > dist/vanilla/sankey-chart1.js && sed '$d' dist/vanilla/sankey-chart1.js > dist/vanilla/sankey-chart.js && rm dist/vanilla/sankey-chart1.js",
+    "build:vanilla": "tsc && npm run mkdir-if-not-exist && sed '$d' dist/event-handler.js > dist/vanilla/event-handler.js && sed '$d' dist/preview.js > dist/vanilla/preview.js && sed '$d' dist/sankey-chart-data.js > dist/vanilla/sankey-chart-data.js && sed '1d;$d;' dist/sankey-chart.js > dist/vanilla/sankey-chart1.js && sed '$d' dist/vanilla/sankey-chart1.js > dist/vanilla/sankey-chart.js && rm dist/vanilla/sankey-chart1.js",
     "build:bundled": "webpack",
     "build:bundled:dev": "webpack --config webpack.dev.config.js --mode development",
     "build:bundled:prod": "webpack --config webpack.config.js --mode production",
