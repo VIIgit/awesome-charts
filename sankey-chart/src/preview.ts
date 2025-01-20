@@ -73,6 +73,7 @@ class Preview {
     if (svgFitsInViewport) {
       this.previewPane.style.display = "none";
     } else {
+      this.previewPane.style.display = "unset";
       // Otherwise, calculate the scale for the preview pane
       const scaleX = viewportWidth / svgWidth;
       const scaleY = viewportHeight / svgHeight;
