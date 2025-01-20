@@ -1,43 +1,6 @@
 class SankeyChart {
     constructor(svgElement, customOptions) {
         this.SVG_NS = "http://www.w3.org/2000/svg";
-        this.showContextMenu = (event) => {
-            var _a, _b;
-            const contextMenu = this.contextMenuElement;
-            const context = { node: (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getSelectedNode() };
-            const menuItems = ((_b = this.contextMenuDynamicLinks) === null || _b === void 0 ? void 0 : _b.call(this, context)) || [];
-            if (menuItems.length > 0) {
-                contextMenu.innerHTML = '';
-                menuItems.forEach(item => {
-                    const div = document.createElement('div');
-                    div.className = 'context-item';
-                    div.textContent = item.label;
-                    div.setAttribute('data-url', item.url);
-                    div.setAttribute('data-target', item.target || '');
-                    div.addEventListener('click', this.openPage);
-                    contextMenu.appendChild(div);
-                });
-                document.addEventListener('click', this.closeContextMenu);
-                event.preventDefault();
-                contextMenu.style.left = `${event.clientX}px; contextMenu!.style.top = ${event.clientY}px`;
-                contextMenu.style.display = 'block';
-            }
-        };
-        this.openPage = (event) => {
-            const target = event.currentTarget;
-            const url = target.getAttribute('data - url');
-            const targetAttr = target.getAttribute('data - target') || '_self';
-            if (url) {
-                window.open(url, targetAttr);
-            }
-        };
-        this.closeContextMenu = () => {
-            const contextMenu = this.contextMenuElement;
-            if (contextMenu) {
-                contextMenu.style.display = 'none';
-                document.removeEventListener('click', this.closeContextMenu);
-            }
-        };
         this.options = {
             nodeWidth: 10,
             nodeLineHeight: 18,
@@ -80,8 +43,7 @@ class SankeyChart {
         this.svgElement = svgElement;
         this.nodePositions = {};
         this.eventHandler = new EventHandler();
-        this.contextMenuElement = undefined;
-        this.contextMenuDynamicLinks = undefined;
+        this.contextMenuCallbackFunction = undefined;
         this.className = {
             NODE_TYPE_TITLE: "node-kind-title",
             NODE_TITLE: "node-title",
@@ -112,10 +74,9 @@ class SankeyChart {
             callbackFunction({ node: (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getSelectedNode(), position: { y: 0 } });
         }
     }
-    addContextMenuListeners(contextMenuElement, callbackFunction) {
+    addContextMenuListeners(callbackFunction) {
         if (typeof callbackFunction === 'function') {
-            this.contextMenuElement = contextMenuElement;
-            this.contextMenuDynamicLinks = callbackFunction;
+            this.contextMenuCallbackFunction = callbackFunction;
         }
     }
     addFetchDataListeners(callbackFunction) {
@@ -167,18 +128,25 @@ class SankeyChart {
         this.svgElement.setAttribute('height', this.calculatedHeight.toString());
         this.svgElement.setAttribute('width', width.toString());
     }
-    renderElipsisMenu(x, y) {
+    renderElipsisMenu(x, y, selectedNode) {
         const menuGroup = document.createElementNS(this.SVG_NS, "g");
         menuGroup.setAttribute('id', 'ellipsisMenu');
         menuGroup.setAttribute('style', 'cursor: pointer;');
         menuGroup.setAttribute('transform', `translate(${x + 2.5}, ${y})`);
-        menuGroup.addEventListener('click', this.showContextMenu);
         const rect = this.createRect(-2.5, 0, this.options.nodeWidth, 22, 'black', '0.2');
+        rect.setAttribute('rx', '5');
+        rect.setAttribute('ry', '5');
         menuGroup.appendChild(rect);
         for (let iy = 5; iy <= 15; iy += 5) {
             const circle = this.createCircle(2.5, iy, 2, "white");
             menuGroup.appendChild(circle);
         }
+        menuGroup.addEventListener('click', (event) => {
+            if (this.contextMenuCallbackFunction) {
+                this.contextMenuCallbackFunction(event, selectedNode);
+                event.stopPropagation();
+            }
+        });
         return menuGroup;
     }
     deepMerge(target, source) {
@@ -235,7 +203,7 @@ class SankeyChart {
             const linesHeight = linesCount * this.options.nodeLineHeight + this.options.marginY;
             node.textLinesHeight = linesHeight;
             const isSelected = selectedNode && selectedNode.name === node.name && selectedNode.kind === node.kind ? true : false;
-            const rectHeight = 2 * this.options.marginY + (node.cardinality ? this.options.nodeLineHeight : 0) + Math.max(linesHeight, linesHeight + sourceRelations.height, targetRelations.height);
+            const rectHeight = 2 * this.options.marginY + Math.max(linesHeight, linesHeight + (sourceRelations.height > 0 ? sourceRelations.height + 12 : 0), (targetRelations.height > 0 ? targetRelations.height + 12 : 0));
             const y = this.options.marginY + overallY;
             const color = node.color || this.options.defaultNodeColor;
             let posX = positionX;
@@ -290,8 +258,8 @@ class SankeyChart {
                 this.addHoverAndClickEvents(g, rectHover, node);
             }
             svgGroup.appendChild(g);
-            if (isSelected && !(node === null || node === void 0 ? void 0 : node.placeHolder) && this.contextMenuElement) {
-                svgGroup.appendChild(this.renderElipsisMenu(posX, y));
+            if (isSelected && !(node === null || node === void 0 ? void 0 : node.placeHolder) && this.contextMenuCallbackFunction) {
+                svgGroup.appendChild(this.renderElipsisMenu(posX, y, node));
             }
             this.nodePositions[node.kind + '::' + node.name] = {
                 node,
@@ -462,7 +430,7 @@ class SankeyChart {
             if ((_c = analytics === null || analytics === void 0 ? void 0 : analytics.traffic) !== null && _c !== void 0 ? _c : 0 > 0) {
                 const text = this.createSvgText('', [this.className.RELATION]);
                 text.setAttribute("x", String(targetPosition.x - this.options.marginY));
-                text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + 8));
+                text.setAttribute("y", String(targetPosition.targetY + (height || 0 / 2) + selectedTarget));
                 text.setAttribute("text-anchor", "end");
                 const tspanEnv = document.createElementNS(this.SVG_NS, "tspan");
                 tspanEnv.textContent = (analytics === null || analytics === void 0 ? void 0 : analytics.environment) || '';
