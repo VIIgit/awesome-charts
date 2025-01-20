@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.12](https://github.com/VIIgit/awesome-charts/compare/v0.0.42...v0.1.12) (2025-01-20)
+
 ### [0.1.11](https://github.com/VIIgit/awesome-charts/compare/v0.0.41...v0.1.11) (2025-01-20)
 
 ### [0.1.10](https://github.com/VIIgit/awesome-charts/compare/v0.0.40...v0.1.10) (2025-01-20)
