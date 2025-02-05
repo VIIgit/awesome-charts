@@ -1,5 +1,6 @@
-./dist
+./dist/*.*
 node_modules
-sankey-chart/dist/event*.*
-sankey-chart/dist/index*.*
-sankey-chart/dist/sankey*.*
+sankey-chartx/dist/event*.*
+sankey-chartx/dist/index*.*
+sankey-chartx/dist/sankey*.*
+coverage

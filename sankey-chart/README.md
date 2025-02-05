@@ -5,6 +5,7 @@
 This repository contains a Sankey chart library, and resources for creating beautiful data visualizations.
 
 ![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/example1.png "Screenshot")
+
 [Live Demo on CodePen](https://codepen.io/w-vii/pen/pvzEPbd?editors=1010)
 
 ### Quick Start Example
@@ -94,110 +95,167 @@ In this section, we demonstrate how to add a custom context menu to the Sankey c
 Below is an example of how to create and display a context menu using plain HTML, CSS, and JavaScript:
 
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Context Menu Example</title>
-  <style>
-    .context-menu {
-      position: absolute;
-      top: 50px;
-      left: 0;
-      background-color: white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      border-radius: 4px;
-      overflow: hidden;
-      display: none;
-      width: 150px;
-      z-index: 1000;
-    }
+<style>
+  .context-menu {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    background-color: white;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    display: none;
+    width: 150px;
+    z-index: 1000;
+  }
 
-    .context-menu ul {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-    }
+  .context-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
 
-    .context-menu .menu-item {
-      padding: 10px 12px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      font-size: 1em;
-      color: #333;
-    }
+  .context-menu .menu-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 1em;
+    color: #333;
+  }
 
-    .context-menu .menu-item:hover {
-      background-color: #007bff;
-      color: white;
-    }
-  </style>
-</head>
-<body>
-  <div id="contextMenu" class="context-menu"></div>
+  .context-menu .menu-item:hover {
+    background-color: #007bff;
+    color: white;
+  }
+</style>
 
-  <script>
-    
-    const sankeyChartData = new SankeyChartData(chartData, chartDataOptions);
-    sankeyChartData.selectNode({ kind: "product", name: "Product 3" });
-    sankeyChartData.selectNode(undefined);
+<div id="contextMenu" class="context-menu"></div>
+````
 
-    const svg = document.getElementById('sankey-chart-svg');
-    const sankeyChart = new SankeyChart(svg);
-    sankeyChart.setData(sankeyChartData);
-    sankeyChart.render();
+```html
+<script>
+  
+  const sankeyChartData = new SankeyChartData(chartData, chartDataOptions);
+  sankeyChartData.selectNode({ kind: "product", name: "Product 3" });
+  sankeyChartData.selectNode(undefined);
 
-    /* Add Context Menu */
-    const contextMenu = document.getElementById("sankey-chart-contextMenu");
+  const svg = document.getElementById('sankey-chart-svg');
+  const sankeyChart = new SankeyChart(svg);
+  sankeyChart.setData(sankeyChartData);
+  sankeyChart.render();
 
-    function populateContextMenu(event, selectedNode) {
-      contextMenu.innerHTML = "";
-      contextMenu.style.display = "block";
-      contextMenu.style.left = `${event.pageX}px`;
-      contextMenu.style.top = `${event.pageY}px`;
+  /* Add Context Menu */
+  const contextMenu = document.getElementById("sankey-chart-contextMenu");
 
-      const items = [
-        {
-          label: "Open " + selectedNode.name,
-          url: "https://example.com/item1",
-          target: "same"
-        },
-        { label: "Menu Item 2...", url: "https://example.com/item2" },
-        { label: "Menu Item 3...", url: "https://example.com/item3" }
-      ];
+  function populateContextMenu(event, selectedNode) {
+    contextMenu.innerHTML = "";
+    contextMenu.style.display = "block";
+    contextMenu.style.left = `${event.pageX}px`;
+    contextMenu.style.top = `${event.pageY}px`;
 
-      const list = document.createElement("ul");
+    const items = [
+      {
+        label: "Open " + selectedNode.name,
+        url: "https://example.com/item1",
+        target: "same"
+      },
+      { label: "Menu Item 2...", url: "https://example.com/item2" },
+      { label: "Menu Item 3...", url: "https://example.com/item3" }
+    ];
 
-      contextMenu.appendChild(list);
+    const list = document.createElement("ul");
 
-      // Add new menu items
-      items.forEach((item) => {
-        const menuItem = document.createElement("li");
-        menuItem.classList.add("menu-item");
-        menuItem.textContent = item.label;
-        menuItem.addEventListener("click", (event) => {
-          alert(`You clicked on ${item.label}`);
-          list.style.display = "none";
-        });
-        list.appendChild(menuItem);
+    contextMenu.appendChild(list);
+
+    // Add new menu items
+    items.forEach((item) => {
+      const menuItem = document.createElement("li");
+      menuItem.classList.add("menu-item");
+      menuItem.textContent = item.label;
+      menuItem.addEventListener("click", (event) => {
+        alert(`You clicked on ${item.label}`);
+        list.style.display = "none";
       });
-
-      return items;
-    }
-
-    sankeyChart.addContextMenuListeners(populateContextMenu);
-
-    // Close menu if clicked outside
-    document.addEventListener("click", (event) => {
-      contextMenu.style.display = "none";
+      list.appendChild(menuItem);
     });
-  </script>
-</body>
-</html>
+
+    return items;
+  }
+
+  sankeyChart.addContextMenuListeners(populateContextMenu);
+
+  // Close menu if clicked outside
+  document.addEventListener("click", (event) => {
+    contextMenu.style.display = "none";
+  });
+</script>
+
+```
+
+### Add Minimap
+
+![example1](https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/docs/images/minimap.png "Screenshot")
+
+In this section, we demonstrate how to add a minimap to the Sankey chart. A minimap provides an overview of the entire chart, allowing users to navigate large charts more easily.
+
+Below is an example of how to create and display a minimap using plain HTML, CSS, and JavaScript:
+
+```html
+<style>
+  .minimap-container {
+    display: flex;
+    position: relative;
+    width: 400px;
+    height: 300px;
+    border: 1px solid #ccc;
+  }
+
+  .minimap-viewport {
+    overflow: auto;
+  }
+
+  .minimap-viewport::-webkit-scrollbar {
+    display: none;
+  }
+
+  .minimap-pane {
+    width: 80px;
+    box-shadow: -3px 0 5px rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.95);
+  }
+
+  .minimap-visible-section {
+    fill: rgba(0, 0, 0, 0.5);
+  }
+</style>
+<div id="container" class="minimap-container">
+  <!-- Main Viewport -->
+  <div id="mainViewport" class="minimap-viewport">
+    <svg id="sankey-chart-svg"><!-- Add your SVG content here --></svg>
+  </div>
+</div>
+````
+
+```html
+<script src="../dist/vanilla/minimap.js"></script>
+<script>
+    const chartElement = document.getElementById('sankey-chart-svg') as SVGSVGElement;
+    const containerElement = document.getElementById('container') as HTMLElement;
+    const mainViewElement = document.getElementById('mainViewport') as HTMLElement;
+    const minimap = new Minimap(chartElement, containerElement, mainViewElement); 
+
+    sankeyChart.addSelectionChangedListeners((event) => {
+      minimap.initialize();
+    });
+</script>
 ```
 
 ## CDN
 
 https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/
 
+<style>
+  img {
+    max-width: 400px;
+  }
+</style>
