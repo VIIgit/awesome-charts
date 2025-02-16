@@ -1,6 +1,6 @@
 {
   "name": "@vii7/awesome-charts",
-  "version": "0.0.47",
+  "version": "0.0.48",
   "description": "A collection of awesome charts modules SVG Charts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -18,9 +18,9 @@
     "build-main": "webpack",
     "publish:dist": "npm publish",
     "publish:version": "npx standard-version && cd sankey-chart && npm run publish:version",
-    "publish:push": "git push --follow-tags origin main && cd sankey-chart && npm run publish:push",
+    "publish:push": "git push --follow-tags origin main && cd sankey-chart && npm run publish:push && cd ..",
     "publish:npmXX": "npm publish",
-    "publish:npm": "git tag npm@0.1.2 && git push --tags",
+    "publish:npm": "git tag npm@0.1.17 && git push --tags",
     "clean": "rm -rf dist sankey-chart/dist"
   },
   "keywords": [
