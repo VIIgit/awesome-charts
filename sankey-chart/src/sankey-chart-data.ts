@@ -1,8 +1,7 @@
 interface Cardinality {
   sourceCount?: number;
   targetCount?: number;
-  fetchMore?: boolean;
-  refs: number;
+  sameKindCount?: number;
 }
 
 interface Node {
@@ -267,7 +266,7 @@ class SankeyChartData {
 
     const kind = this.options.kinds[startIndex];
     previousKinds = this.nodesByKinds[kind.name];
-    for (let index = startIndex-1; index >=0; index--) {
+    for (let index = startIndex - 1; index >= 0; index--) {
       const kind = this.options.kinds[index];
       const currentKinds = this.nodesByKinds[kind.name];
       if (currentKinds) {
@@ -280,7 +279,7 @@ class SankeyChartData {
   }
 
   sortNodesOfKind(kind: Kind, nodes: Node[], previousKinds: Node[], selectedNode: Node) {
-    if ( kind.name === selectedNode?.kind) {
+    if (kind.name === selectedNode?.kind) {
       nodes.sort((a, b) => a.name === selectedNode.name ? -1 : (b.name === selectedNode.name ? 1 : a.name.localeCompare(b.name)));
     } else {
       const relations = this.getRelations();
@@ -351,49 +350,33 @@ class SankeyChartData {
   }
 
   initializeRelationsInfo() {
-    const summary: { [key: string]: { sourceCount: number; targetCount: number; refs: number } } = {};
+    const summary: { [key: string]: { sourceCount: number; targetCount: number; sameKindCount: number } } = {};
     this.originalData.relations?.forEach((link) => {
       const key = link.source.kind + '::' + link.source.name;
       if (!summary[key]) {
-        summary[key] = { sourceCount: 0, targetCount: 0, refs: 0 };
+        summary[key] = { sourceCount: 0, targetCount: 0, sameKindCount: 0 };
       }
       if (link.source.kind === link.target.kind) {
-        summary[key].refs++;
+        summary[key].sameKindCount++;
       } else {
         summary[key].sourceCount++;
       }
       const targetKey = link.target.kind + '::' + link.target.name;
       if (!summary[targetKey]) {
-        summary[targetKey] = { sourceCount: 0, targetCount: 0, refs: 0 };
+        summary[targetKey] = { sourceCount: 0, targetCount: 0, sameKindCount: 0 };
       }
       summary[targetKey].targetCount++;
     });
-    const fetchMoreNodes: Node[] = [];
     this.originalData.nodes.forEach((node) => {
       const cardinality = summary[node.kind + '::' + node.name];
       node.color = this.getNodeTagColor(node);
-      if (node.targetCount || node.sourceCount) {
-        node.cardinality = { sourceCount: node.sourceCount, targetCount: node.targetCount, fetchMore: true, refs: 0 };
-        if (node.sourceCount) {
-          delete node.sourceCount;
-          const nextNode = this.appendNextNode(node, -1);
-          if (nextNode) {
-            fetchMoreNodes.push(nextNode);
-          }
-        }
-        if (node.targetCount) {
-          delete node.targetCount;
-          const nextNode = this.appendNextNode(node, 1);
-          if (nextNode) {
-            fetchMoreNodes.push(nextNode);
-          }
-        }
-      } else {
-        node.cardinality = cardinality;
+      node.cardinality = cardinality;
+      if (node.targetCount) {
+        node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
       }
-    });
-    fetchMoreNodes.forEach(node => {
-      this.originalData.nodes.push(node);
+      if (node.sourceCount) {
+        node['cardinality'] = Object.assign(node['cardinality'], { sourceCount: node.sourceCount, sameKindCount: 0 });
+      }
     });
   }
 
@@ -415,18 +398,6 @@ class SankeyChartData {
     const color = node.tags ? node.tags.map(tag => this.options.tagColorMap?.[tag]).find(color => color !== undefined) : this.options.defaultColor;
     return node.color || color;
   };
-
-  appendNextNode(node: Node, offset: number): Node | undefined {
-    const index = this.getIndexByKind(node.kind, offset);
-    if (index > -1) {
-      const nextNodeKind = this.options.kinds[index];
-      const nextNode: Node = { kind: nextNodeKind.name, name: '…', placeHolder: true };
-      const nextNodeRelation: Relation = offset === -1 ? { source: nextNode, target: node } : { source: node, target: nextNode };
-      this.originalData.relations.push(nextNodeRelation);
-      return nextNode;
-    }
-    return undefined;
-  }
 
   searchByName(node: { kind: string; name: string }): Node[] {
     if (!node.kind || !node.name) {

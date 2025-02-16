@@ -79,11 +79,6 @@ class SankeyChart {
             this.contextMenuCallbackFunction = callbackFunction;
         }
     }
-    addFetchDataListeners(callbackFunction) {
-        if (typeof callbackFunction === 'function') {
-            this.eventHandler.subscribe('fetchData', callbackFunction);
-        }
-    }
     createTruncateText() {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
@@ -238,8 +233,8 @@ class SankeyChart {
             g.appendChild(rect);
             rectHover.style.cursor = 'pointer';
             g.appendChild(rectHover);
-            if (node.cardinality) {
-                this.appendCardinalityText(g, node.cardinality, posX, y, rectHeight, color, isSelected);
+            if (node.cardinality || node.targetCount || node.sourceCount) {
+                this.appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected);
             }
             const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
             text.setAttribute("x", String(posX + this.options.marginX));
@@ -300,17 +295,17 @@ class SankeyChart {
         rect.setAttribute("opacity", opacity);
         return rect;
     }
-    appendCardinalityText(g, cardinality, posX, y, rectHeight, color, isSelected) {
-        var _a, _b;
-        if ((_a = cardinality.sourceCount) !== null && _a !== void 0 ? _a : 0 > 0) {
-            const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+    appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+        if ((_b = (_a = node.cardinality) === null || _a === void 0 ? void 0 : _a.sourceCount) !== null && _b !== void 0 ? _b : 0 > 0) {
+            const sourceText = this.createSvgText('- ' + ((_c = node.cardinality) === null || _c === void 0 ? void 0 : _c.sourceCount) + (((_e = (_d = node.cardinality) === null || _d === void 0 ? void 0 : _d.sameKindCount) !== null && _e !== void 0 ? _e : 0) > 0 ? '+' + ((_g = (_f = node.cardinality) === null || _f === void 0 ? void 0 : _f.sameKindCount) !== null && _g !== void 0 ? _g : 0) : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
             sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
             sourceText.setAttribute("y", String(y + rectHeight - 2));
             sourceText.setAttribute("fill", color);
             g.appendChild(sourceText);
         }
-        if ((_b = cardinality.targetCount) !== null && _b !== void 0 ? _b : 0 > 0) {
-            const targetText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+        if ((_j = (_h = node.cardinality) === null || _h === void 0 ? void 0 : _h.targetCount) !== null && _j !== void 0 ? _j : 0 > 0) {
+            const targetText = this.createSvgText(((_k = node.cardinality) === null || _k === void 0 ? void 0 : _k.targetCount) + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
             targetText.setAttribute("x", String(posX + this.options.marginX - 14));
             targetText.setAttribute("y", String(y + rectHeight - 2));
             targetText.setAttribute("fill", color);
@@ -336,12 +331,9 @@ class SankeyChart {
     }
     addHoverAndClickEvents(group, rectHover, node) {
         group.addEventListener('click', (event) => {
-            var _a, _b;
+            var _a;
             (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.selectNode(node);
             this.render();
-            if ((_b = node === null || node === void 0 ? void 0 : node.cardinality) === null || _b === void 0 ? void 0 : _b.fetchMore) {
-                this.eventHandler.dispatchEvent('fetchData', { node });
-            }
             this.eventHandler.dispatchEvent('selectionChanged', { node, position: { y: this.selectedNodePositionY } });
         });
         group.addEventListener('mouseenter', (event) => {

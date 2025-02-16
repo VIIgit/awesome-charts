@@ -258,47 +258,30 @@ class SankeyChartData {
         (_a = this.originalData.relations) === null || _a === void 0 ? void 0 : _a.forEach((link) => {
             const key = link.source.kind + '::' + link.source.name;
             if (!summary[key]) {
-                summary[key] = { sourceCount: 0, targetCount: 0, refs: 0 };
+                summary[key] = { sourceCount: 0, targetCount: 0, sameKindCount: 0 };
             }
             if (link.source.kind === link.target.kind) {
-                summary[key].refs++;
+                summary[key].sameKindCount++;
             }
             else {
                 summary[key].sourceCount++;
             }
             const targetKey = link.target.kind + '::' + link.target.name;
             if (!summary[targetKey]) {
-                summary[targetKey] = { sourceCount: 0, targetCount: 0, refs: 0 };
+                summary[targetKey] = { sourceCount: 0, targetCount: 0, sameKindCount: 0 };
             }
             summary[targetKey].targetCount++;
         });
-        const fetchMoreNodes = [];
         this.originalData.nodes.forEach((node) => {
             const cardinality = summary[node.kind + '::' + node.name];
             node.color = this.getNodeTagColor(node);
-            if (node.targetCount || node.sourceCount) {
-                node.cardinality = { sourceCount: node.sourceCount, targetCount: node.targetCount, fetchMore: true, refs: 0 };
-                if (node.sourceCount) {
-                    delete node.sourceCount;
-                    const nextNode = this.appendNextNode(node, -1);
-                    if (nextNode) {
-                        fetchMoreNodes.push(nextNode);
-                    }
-                }
-                if (node.targetCount) {
-                    delete node.targetCount;
-                    const nextNode = this.appendNextNode(node, 1);
-                    if (nextNode) {
-                        fetchMoreNodes.push(nextNode);
-                    }
-                }
+            node.cardinality = cardinality;
+            if (node.targetCount) {
+                node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
             }
-            else {
-                node.cardinality = cardinality;
+            if (node.sourceCount) {
+                node['cardinality'] = Object.assign(node['cardinality'], { sourceCount: node.sourceCount, sameKindCount: 0 });
             }
-        });
-        fetchMoreNodes.forEach(node => {
-            this.originalData.nodes.push(node);
         });
     }
     getIndexByKind(kind, offset) {
@@ -316,17 +299,6 @@ class SankeyChartData {
         else {
             return -1;
         }
-    }
-    appendNextNode(node, offset) {
-        const index = this.getIndexByKind(node.kind, offset);
-        if (index > -1) {
-            const nextNodeKind = this.options.kinds[index];
-            const nextNode = { kind: nextNodeKind.name, name: '…', placeHolder: true };
-            const nextNodeRelation = offset === -1 ? { source: nextNode, target: node } : { source: node, target: nextNode };
-            this.originalData.relations.push(nextNodeRelation);
-            return nextNode;
-        }
-        return undefined;
     }
     searchByName(node) {
         if (!node.kind || !node.name) {

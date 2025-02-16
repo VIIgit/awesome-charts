@@ -47,12 +47,13 @@ class Minimap {
 
       .minimap-pane {
         width: 80px;
-        box-shadow: -3px 0 5px rgba(0, 0, 0, 0.2);
-        background-color: rgba(255, 255, 255, 0.95);
+        box-shadow: -3px 0 5px -4px black;
+        background-color: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(3px);
       }
 
       .minimap-visible-section {
-        fill: rgba(0, 0, 0, 0.5);
+        fill: rgba(0, 0, 0, 0.2);
       }
     </style>
     

@@ -200,12 +200,6 @@ class SankeyChart {
     }
   }
 
-  public addFetchDataListeners(callbackFunction: (data: any) => void): void {
-    if (typeof callbackFunction === 'function') {
-      this.eventHandler.subscribe('fetchData', callbackFunction);
-    }
-  }
-
   private createTruncateText() {
     // Create a shared canvas and context
     const canvas = document.createElement("canvas");
@@ -382,8 +376,8 @@ class SankeyChart {
       rectHover.style.cursor = 'pointer';
       g.appendChild(rectHover);
 
-      if (node.cardinality) {
-        this.appendCardinalityText(g, node.cardinality, posX, y, rectHeight, color, isSelected);
+      if (node.cardinality || node.targetCount || node.sourceCount) {
+        this.appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected);
       }
 
       const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
@@ -456,16 +450,16 @@ class SankeyChart {
     return rect as SVGRectElement;
   }
 
-  private appendCardinalityText(g: SVGGElement, cardinality: Cardinality, posX: number, y: number, rectHeight: number, color: string, isSelected: boolean) {
-    if (cardinality.sourceCount ?? 0 > 0) {
-      const sourceText = this.createSvgText('- ' + cardinality.sourceCount + (cardinality.refs > 0 ? '+' + cardinality.refs : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+  private appendCardinalityText(g: SVGGElement, node: ChartNode, posX: number, y: number, rectHeight: number, color: string, isSelected: boolean) {
+    if (node.cardinality?.sourceCount ?? 0 > 0) {
+      const sourceText = this.createSvgText('- ' + node.cardinality?.sourceCount + ((node.cardinality?.sameKindCount??0) > 0 ? '+' + (node.cardinality?.sameKindCount??0) : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
       sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
       sourceText.setAttribute("y", String(y + rectHeight - 2));
       sourceText.setAttribute("fill", color);
       g.appendChild(sourceText);
     }
-    if (cardinality.targetCount ?? 0 > 0) {
-      const targetText = this.createSvgText(cardinality.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+    if (node.cardinality?.targetCount ?? 0 > 0) {
+      const targetText = this.createSvgText(node.cardinality?.targetCount + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
       targetText.setAttribute("x", String(posX + this.options.marginX - 14));
       targetText.setAttribute("y", String(y + rectHeight - 2));
       targetText.setAttribute("fill", color);
@@ -495,9 +489,6 @@ class SankeyChart {
     group.addEventListener('click', (event) => {
       this.chartData?.selectNode(node);
       this.render();
-      if (node?.cardinality?.fetchMore) {
-        this.eventHandler.dispatchEvent('fetchData', { node });
-      }
       this.eventHandler.dispatchEvent('selectionChanged', { node, position: { y: this.selectedNodePositionY } });
     });
     group.addEventListener('mouseenter', (event) => {
