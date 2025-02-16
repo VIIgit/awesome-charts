@@ -73,7 +73,8 @@ Here's a simple example using plain vanilla javascripts without any third party 
       }
     };
 
-    const sankeyChartData = new SankeyChartData(chartData, chartDataOptions);
+    const partialData = false;
+    const sankeyChartData = new SankeyChartData(chartData, chartDataOptions, partialData);
     sankeyChartData.selectNode({ kind: "product", name: "Product 3" });
     sankeyChartData.selectNode(undefined);
 

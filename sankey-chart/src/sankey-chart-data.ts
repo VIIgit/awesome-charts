@@ -85,17 +85,19 @@ class SankeyChartData {
   selectedNode?: Node;
   nodes: Node[];
   dependencies: { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean; };
-  originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[], };
+  originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[] };
+  allNodesLoaded: boolean;
   nodesByKinds: { [key: string]: Node[] };
   title?: KindMeta;
   options: SankeyChartDataOptions;
 
-  constructor(data: { name: string; color?: string; nodes?: Node[]; relations?: Relation[] }, options: SankeyChartDataOptions) {
+  constructor(data: { name: string; color?: string; nodes?: Node[]; relations?: Relation[] }, options: SankeyChartDataOptions, partialData: boolean = false) {
     this.selectedNode = undefined;
     this.nodes = [];
     this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
 
     this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
+    this.allNodesLoaded = !partialData;
     this.nodesByKinds = {};
     this.title = undefined;
     this.options = {
