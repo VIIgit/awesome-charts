@@ -3,7 +3,7 @@ var IncludeKind;
     IncludeKind["WITH_SAME_TARGET"] = "WITH_SAME_TARGET";
 })(IncludeKind || (IncludeKind = {}));
 class SankeyChartData {
-    constructor(data, options) {
+    constructor(data, options, partialData = false) {
         this.getNodeTagColor = (node) => {
             const color = node.tags ? node.tags.map(tag => { var _a; return (_a = this.options.tagColorMap) === null || _a === void 0 ? void 0 : _a[tag]; }).find(color => color !== undefined) : this.options.defaultColor;
             return node.color || color;
@@ -12,6 +12,7 @@ class SankeyChartData {
         this.nodes = [];
         this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
         this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
+        this.allNodesLoaded = !partialData;
         this.nodesByKinds = {};
         this.title = undefined;
         this.options = {

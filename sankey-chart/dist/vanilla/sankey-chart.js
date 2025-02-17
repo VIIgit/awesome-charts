@@ -79,6 +79,16 @@ class SankeyChart {
             this.contextMenuCallbackFunction = callbackFunction;
         }
     }
+    getDirectTargetNodesOf(selectedNode) {
+        var _a, _b;
+        return (_b = (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getRelations().filter((relation) => relation.source.kind === selectedNode.kind &&
+            relation.source.name === selectedNode.name).map(relation => relation.target)) !== null && _b !== void 0 ? _b : [];
+    }
+    getDirectSourceNodesOf(selectedNode) {
+        var _a, _b;
+        return (_b = (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getRelations().filter((relation) => relation.target.kind === selectedNode.kind &&
+            relation.target.name === selectedNode.name).map(relation => relation.source)) !== null && _b !== void 0 ? _b : [];
+    }
     createTruncateText() {
         const canvas = document.createElement("canvas");
         const context = canvas.getContext("2d");
@@ -164,7 +174,7 @@ class SankeyChart {
         }
         return target;
     }
-    renderNodes(nodes, positionX, selectedNode, kind) {
+    renderNodes(nodes, positionX, selectedNode, kind, directTargetNodes, directSourceNodes) {
         var _a, _b, _c, _d;
         const svgGroup = document.createElementNS(this.SVG_NS, "g");
         let overallY = this.options.topY;
@@ -234,7 +244,9 @@ class SankeyChart {
             rectHover.style.cursor = 'pointer';
             g.appendChild(rectHover);
             if (node.cardinality || node.targetCount || node.sourceCount) {
-                this.appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected);
+                const isDirectTargetNodes = (directTargetNodes === null || directTargetNodes === void 0 ? void 0 : directTargetNodes.find(directNode => node.name === directNode.name && node.kind === directNode.kind)) ? true : false;
+                const isDirectSourceNodes = (directSourceNodes === null || directSourceNodes === void 0 ? void 0 : directSourceNodes.find(directNode => node.name === directNode.name && node.kind === directNode.kind)) ? true : false;
+                this.appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected, isDirectTargetNodes, isDirectSourceNodes);
             }
             const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
             text.setAttribute("x", String(posX + this.options.marginX));
@@ -295,17 +307,21 @@ class SankeyChart {
         rect.setAttribute("opacity", opacity);
         return rect;
     }
-    appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected) {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    appendCardinalityText(g, node, posX, y, rectHeight, color, isSelected, isDirectRelatedToSelected, isDirectSourceNodes) {
+        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
         if ((_b = (_a = node.cardinality) === null || _a === void 0 ? void 0 : _a.sourceCount) !== null && _b !== void 0 ? _b : 0 > 0) {
-            const sourceText = this.createSvgText('- ' + ((_c = node.cardinality) === null || _c === void 0 ? void 0 : _c.sourceCount) + (((_e = (_d = node.cardinality) === null || _d === void 0 ? void 0 : _d.sameKindCount) !== null && _e !== void 0 ? _e : 0) > 0 ? '+' + ((_g = (_f = node.cardinality) === null || _f === void 0 ? void 0 : _f.sameKindCount) !== null && _g !== void 0 ? _g : 0) : ''), [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+            const allNodesLoaded = ((_c = this.chartData) === null || _c === void 0 ? void 0 : _c.allNodesLoaded) || isSelected || isDirectRelatedToSelected;
+            const cardinalityText = ((_d = node.cardinality) === null || _d === void 0 ? void 0 : _d.sourceCount) + (allNodesLoaded ? '' : '..*') + (((_f = (_e = node.cardinality) === null || _e === void 0 ? void 0 : _e.sameKindCount) !== null && _f !== void 0 ? _f : 0) > 0 ? '+' + ((_h = (_g = node.cardinality) === null || _g === void 0 ? void 0 : _g.sameKindCount) !== null && _h !== void 0 ? _h : 0) : '');
+            const sourceText = this.createSvgText('- ' + cardinalityText, [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
             sourceText.setAttribute("x", String(posX + this.options.marginX - 6));
             sourceText.setAttribute("y", String(y + rectHeight - 2));
             sourceText.setAttribute("fill", color);
             g.appendChild(sourceText);
         }
-        if ((_j = (_h = node.cardinality) === null || _h === void 0 ? void 0 : _h.targetCount) !== null && _j !== void 0 ? _j : 0 > 0) {
-            const targetText = this.createSvgText(((_k = node.cardinality) === null || _k === void 0 ? void 0 : _k.targetCount) + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
+        if ((_k = (_j = node.cardinality) === null || _j === void 0 ? void 0 : _j.targetCount) !== null && _k !== void 0 ? _k : 0 > 0) {
+            const allNodesLoaded = ((_l = this.chartData) === null || _l === void 0 ? void 0 : _l.allNodesLoaded) || isSelected || isDirectSourceNodes;
+            const cardinalityText = ((_m = node.cardinality) === null || _m === void 0 ? void 0 : _m.targetCount) + (allNodesLoaded ? '' : '..*');
+            const targetText = this.createSvgText(cardinalityText + ' -', [this.className.CARDINALITY, isSelected ? this.className.SELECTED : '']);
             targetText.setAttribute("x", String(posX + this.options.marginX - 14));
             targetText.setAttribute("y", String(y + rectHeight - 2));
             targetText.setAttribute("fill", color);
@@ -357,7 +373,6 @@ class SankeyChart {
         const gPath = document.createElementNS(this.SVG_NS, "g");
         relations === null || relations === void 0 ? void 0 : relations.forEach((link) => {
             var _a, _b, _c, _d, _e, _f;
-            const g = document.createElementNS(this.SVG_NS, "g");
             const sourcePosition = localNodePositions[link.source.kind + '::' + link.source.name];
             const targetPosition = localNodePositions[link.target.kind + '::' + link.target.name];
             if (!targetPosition || !sourcePosition) {
@@ -463,9 +478,11 @@ class SankeyChart {
         this.selectedNodePositionY = -1;
         const svgNodes = document.createElementNS(this.SVG_NS, "g");
         if (kinds && kinds.length > 0) {
+            const directTargetNodes = selectedNode ? this.getDirectTargetNodesOf(selectedNode) : [];
+            const directSourceNodes = selectedNode ? this.getDirectSourceNodesOf(selectedNode) : [];
             kinds.forEach(kind => {
                 var _a, _b;
-                svgNodes.appendChild(this.renderNodes((_b = (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getNodesByKind(kind.name)) !== null && _b !== void 0 ? _b : [], this.options.leftX + columnWidth * column++, selectedNode, kind));
+                svgNodes.appendChild(this.renderNodes((_b = (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getNodesByKind(kind.name)) !== null && _b !== void 0 ? _b : [], this.options.leftX + columnWidth * column++, selectedNode, kind, directTargetNodes, directSourceNodes));
             });
         }
         else {
