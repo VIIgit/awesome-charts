@@ -377,7 +377,7 @@ class SankeyChartData {
         node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
       }
       if (node.sourceCount) {
-        node['cardinality'] = Object.assign(node['cardinality'], { sourceCount: node.sourceCount, sameKindCount: 0 });
+        node['cardinality'] = Object.assign(node['cardinality'] ? node['cardinality'] : {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
       }
     });
   }
