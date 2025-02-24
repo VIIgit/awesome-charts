@@ -187,7 +187,31 @@ class SankeyChartData {
     }
     sortNodesOfKind(kind, nodes, previousKinds, selectedNode) {
         if (kind.name === (selectedNode === null || selectedNode === void 0 ? void 0 : selectedNode.kind)) {
-            nodes.sort((a, b) => a.name === selectedNode.name ? -1 : (b.name === selectedNode.name ? 1 : a.name.localeCompare(b.name)));
+            const relations = this.getRelations();
+            const relatedOfSameKindNodes = relations.filter(rel => rel.source.name === selectedNode.name && rel.source.kind === kind.name && rel.target.kind === kind.name).map(rel => rel.target.name);
+            const dependenciesOfSameKindNodes = relations.filter(rel => rel.target.name === selectedNode.name && rel.target.kind === kind.name && rel.source.kind === kind.name).map(rel => rel.source.name);
+            nodes.sort((a, b) => {
+                const group = (node) => {
+                    if (dependenciesOfSameKindNodes.length > 0) {
+                        if (dependenciesOfSameKindNodes.includes(node.name))
+                            return 1;
+                        if (node.name === selectedNode.name)
+                            return 2;
+                    }
+                    else {
+                        if (node.name === selectedNode.name)
+                            return 1;
+                        if (relatedOfSameKindNodes.includes(node.name))
+                            return 2;
+                    }
+                    return 3;
+                };
+                const groupA = group(a);
+                const groupB = group(b);
+                if (groupA !== groupB)
+                    return groupA - groupB;
+                return a.name.localeCompare(b.name);
+            });
         }
         else {
             const relations = this.getRelations();
@@ -274,6 +298,7 @@ class SankeyChartData {
             summary[targetKey].targetCount++;
         });
         this.originalData.nodes.forEach((node) => {
+            var _a;
             const cardinality = summary[node.kind + '::' + node.name];
             node.color = this.getNodeTagColor(node);
             node.cardinality = cardinality;
@@ -281,7 +306,7 @@ class SankeyChartData {
                 node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
             }
             if (node.sourceCount) {
-                node['cardinality'] = Object.assign(node['cardinality'], { sourceCount: node.sourceCount, sameKindCount: 0 });
+                node['cardinality'] = Object.assign((_a = node['cardinality']) !== null && _a !== void 0 ? _a : {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
             }
         });
     }

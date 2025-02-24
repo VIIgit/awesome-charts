@@ -241,9 +241,9 @@ Below is an example of how to create and display a minimap using plain HTML, CSS
 ```html
 <script src="../dist/vanilla/minimap.js"></script>
 <script>
-    const chartElement = document.getElementById('sankey-chart-svg') as SVGSVGElement;
-    const containerElement = document.getElementById('container') as HTMLElement;
-    const mainViewElement = document.getElementById('mainViewport') as HTMLElement;
+    const chartElement = document.getElementById('sankey-chart-svg');
+    const containerElement = document.getElementById('container');
+    const mainViewElement = document.getElementById('mainViewport');
     const minimap = new Minimap(chartElement, containerElement, mainViewElement); 
 
     sankeyChart.addSelectionChangedListeners((event) => {

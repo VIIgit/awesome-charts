@@ -282,7 +282,32 @@ class SankeyChartData {
 
   sortNodesOfKind(kind: Kind, nodes: Node[], previousKinds: Node[], selectedNode: Node) {
     if (kind.name === selectedNode?.kind) {
-      nodes.sort((a, b) => a.name === selectedNode.name ? -1 : (b.name === selectedNode.name ? 1 : a.name.localeCompare(b.name)));
+
+      const relations = this.getRelations();
+      const relatedOfSameKindNodes = relations.filter(rel => rel.source.name === selectedNode.name && rel.source.kind === kind.name && rel.target.kind === kind.name).map(rel => rel.target.name);
+      const dependenciesOfSameKindNodes = relations.filter(rel => rel.target.name === selectedNode.name && rel.target.kind === kind.name && rel.source.kind === kind.name).map(rel => rel.source.name);
+
+      nodes.sort((a, b) => {
+        // Define group:
+        // 1: selected node, 2: nodes in relatedOfSameKindNodes, 3: rest of the nodes
+        const group = (node: Node): number => {
+          if (dependenciesOfSameKindNodes.length > 0) {
+            if (dependenciesOfSameKindNodes.includes(node.name)) return 1;
+            if (node.name === selectedNode.name) return 2;
+          } else {
+            if (node.name === selectedNode.name) return 1;
+            if (relatedOfSameKindNodes.includes(node.name)) return 2;
+          }
+          return 3;
+        };
+
+        const groupA = group(a);
+        const groupB = group(b);
+
+        if (groupA !== groupB) return groupA - groupB;
+        return a.name.localeCompare(b.name);
+      });
+
     } else {
       const relations = this.getRelations();
       nodes.sort((a, b) => {
@@ -377,7 +402,7 @@ class SankeyChartData {
         node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
       }
       if (node.sourceCount) {
-        node['cardinality'] = Object.assign(node['cardinality'] ? node['cardinality'] : {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
+        node['cardinality'] = Object.assign(node['cardinality'] ?? {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
       }
     });
   }
