@@ -77,13 +77,19 @@ class Minimap {
     this.mainView.addEventListener('scroll', this.syncScroll.bind(this));
     this.visibleSection.addEventListener('mousedown', this.startDrag.bind(this));
 
-    this.initialize();
+    // Create a ResizeObserver that triggers the minimap update
+    const resizeObserver = new ResizeObserver(() => {
+      this.initialize();
+    });
+    
+    resizeObserver.observe(this.container);
+    resizeObserver.observe(this.mainView);
   }
 
   /**
     * Reinitialize the Minimap.
     */
-  public initialize() {
+  private initialize() {
 
     this.mainViewHeight = this.mainView.clientHeight;
     this.mainViewWidth = this.mainView.clientWidth;

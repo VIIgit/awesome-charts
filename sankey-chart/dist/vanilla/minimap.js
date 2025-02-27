@@ -33,7 +33,11 @@ class Minimap {
         this.container.appendChild(this.minimapPane);
         this.mainView.addEventListener('scroll', this.syncScroll.bind(this));
         this.visibleSection.addEventListener('mousedown', this.startDrag.bind(this));
-        this.initialize();
+        const resizeObserver = new ResizeObserver(() => {
+            this.initialize();
+        });
+        resizeObserver.observe(this.container);
+        resizeObserver.observe(this.mainView);
     }
     initialize() {
         this.mainViewHeight = this.mainView.clientHeight;
