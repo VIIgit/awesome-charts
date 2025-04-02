@@ -37,7 +37,7 @@ class SankeyChartData {
             const tags = Object.keys(this.options.tagColorMap);
             this.nodes.forEach(node => {
                 const hasSome = tags.some(tag => { var _a; return (_a = node.tags) === null || _a === void 0 ? void 0 : _a.includes(tag); });
-                if (hasSome) {
+                if (hasSome || node['color'] === this.options.defaultColor) {
                     delete node['color'];
                 }
             });

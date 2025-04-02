@@ -38,7 +38,7 @@ interface CustomOptions {
   topY?: number;
   nodeMarginY?: number;
   nameMaxLength?: number;
-  nodeColumnWith?: number;
+  nodeColumnWidth?: number;
   defaultNodeColor?: string;
   trafficLog10Factor?: number;
   relationDefaultWidth?: number;
@@ -72,7 +72,7 @@ class SankeyChart {
       leftX: number;
       topY: number;
       nodeMarginY: number;
-      nodeColumnWith: number;
+      nodeColumnWidth: number;
       defaultNodeColor: string;
       renderKindAsColums: boolean;
       trafficLog10Factor: number,
@@ -117,6 +117,14 @@ class SankeyChart {
   private SVG_NS = "http://www.w3.org/2000/svg";
 
   constructor(svgElement: any, customOptions?: CustomOptions) {
+    this.svgElement = svgElement;
+    this.className = {
+      NODE_TYPE_TITLE: "node-kind-title",
+      NODE_TITLE: "node-title",
+      RELATION: "relation",
+      CARDINALITY: "cardinality",
+      SELECTED: 'selected'
+    };
     this.options = {
       nodeWidth: 10,
       nodeLineHeight: 18,
@@ -125,7 +133,7 @@ class SankeyChart {
       leftX: 15,
       topY: 10,
       nodeMarginY: 10,
-      nodeColumnWith: 300,
+      nodeColumnWidth: 300,
       defaultNodeColor: "gray",
       renderKindAsColums: true,
       trafficLog10Factor: 12,
@@ -156,23 +164,17 @@ class SankeyChart {
       this.setOptions(customOptions);
     }
     this.calculatedHeight = 0;
-    this.svgElement = svgElement;
     this.nodePositions = {};
     this.eventHandler = new EventHandler();
     this.contextMenuCallbackFunction = undefined;
-    this.className = {
-      NODE_TYPE_TITLE: "node-kind-title",
-      NODE_TITLE: "node-title",
-      RELATION: "relation",
-      CARDINALITY: "cardinality",
-      SELECTED: 'selected'
-    };
     this.selectedNodePositionY = -1;
     this.truncateText = this.createTruncateText();
   }
 
-  private setOptions(customOptions: CustomOptions): void {
+  public setOptions(customOptions: CustomOptions): void {
+    customOptions.nodeColumnWidth = Number(customOptions.nodeColumnWidth);
     this.options = this.deepMerge(this.options, customOptions);
+    this.render();
   }
 
   public setData(chartData: ChartData): void {
@@ -265,7 +267,7 @@ class SankeyChart {
   }
 
   private updateHeight(): void {
-    const width = ((this.options.nodeColumnWith ?? 0) + (this.options.nodeWidth ?? 0)) * Math.max(1, this.chartData?.getKinds().length || 0) + (this.options.marginX * 2);
+    const width = ((this.options.nodeColumnWidth ?? 0) + (this.options.nodeWidth ?? 0)) * Math.max(1, this.chartData?.getKinds().length || 0) + (this.options.marginX * 2);
     this.svgElement.setAttribute('height', this.calculatedHeight.toString());
     this.svgElement.setAttribute('width', width.toString());
   }
@@ -356,7 +358,7 @@ class SankeyChart {
       const y = this.options.marginY + overallY;
       const color = node.color || this.options.defaultNodeColor;
       let posX = positionX;
-      let rectPositionWidth = this.options.nodeColumnWith;
+      let rectPositionWidth = this.options.nodeColumnWidth;
 
       if (isSelected) {
         this.selectedNodePositionY = y;
@@ -404,7 +406,7 @@ class SankeyChart {
       text.setAttribute("x", String(posX + this.options.marginX));
       text.setAttribute("y", y.toString());
 
-      const lines = this.createTextLines(node, this.options.nodeColumnWith - this.options.nodeWidth);
+      const lines = this.createTextLines(node, this.options.nodeColumnWidth - this.options.nodeWidth);
       lines.forEach((line, i) => {
         const tspan = document.createElementNS(this.SVG_NS, "tspan");
         tspan.setAttribute("x", String(posX + this.options.marginX));
@@ -658,6 +660,9 @@ class SankeyChart {
   }
 
   private render(): void {
+    if (!this.chartData) {
+      return;
+    }
     const selectedNode = this.chartData?.getSelectedNode();
 
     this.resetSvg();
@@ -665,7 +670,7 @@ class SankeyChart {
     this.updateRelationWeights(this.chartData?.getNodes() ?? [], this.chartData?.getRelations() ?? [], selectedNode);
 
     let column = 0;
-    const columnWidth = this.options.nodeColumnWith + this.options.nodeWidth;
+    const columnWidth = this.options.nodeColumnWidth + this.options.nodeWidth;
     const kinds = this.chartData?.getKinds();
     this.selectedNodePositionY = -1;
     const svgNodes = document.createElementNS(this.SVG_NS, "g");

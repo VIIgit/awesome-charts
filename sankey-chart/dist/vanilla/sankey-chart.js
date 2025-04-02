@@ -1,6 +1,14 @@
 class SankeyChart {
     constructor(svgElement, customOptions) {
         this.SVG_NS = "http://www.w3.org/2000/svg";
+        this.svgElement = svgElement;
+        this.className = {
+            NODE_TYPE_TITLE: "node-kind-title",
+            NODE_TITLE: "node-title",
+            RELATION: "relation",
+            CARDINALITY: "cardinality",
+            SELECTED: 'selected'
+        };
         this.options = {
             nodeWidth: 10,
             nodeLineHeight: 18,
@@ -9,7 +17,7 @@ class SankeyChart {
             leftX: 15,
             topY: 10,
             nodeMarginY: 10,
-            nodeColumnWith: 300,
+            nodeColumnWidth: 300,
             defaultNodeColor: "gray",
             renderKindAsColums: true,
             trafficLog10Factor: 12,
@@ -40,22 +48,16 @@ class SankeyChart {
             this.setOptions(customOptions);
         }
         this.calculatedHeight = 0;
-        this.svgElement = svgElement;
         this.nodePositions = {};
         this.eventHandler = new EventHandler();
         this.contextMenuCallbackFunction = undefined;
-        this.className = {
-            NODE_TYPE_TITLE: "node-kind-title",
-            NODE_TITLE: "node-title",
-            RELATION: "relation",
-            CARDINALITY: "cardinality",
-            SELECTED: 'selected'
-        };
         this.selectedNodePositionY = -1;
         this.truncateText = this.createTruncateText();
     }
     setOptions(customOptions) {
+        customOptions.nodeColumnWidth = Number(customOptions.nodeColumnWidth);
         this.options = this.deepMerge(this.options, customOptions);
+        this.render();
     }
     setData(chartData) {
         if (this.chartData !== chartData) {
@@ -129,7 +131,7 @@ class SankeyChart {
     }
     updateHeight() {
         var _a, _b, _c;
-        const width = (((_a = this.options.nodeColumnWith) !== null && _a !== void 0 ? _a : 0) + ((_b = this.options.nodeWidth) !== null && _b !== void 0 ? _b : 0)) * Math.max(1, ((_c = this.chartData) === null || _c === void 0 ? void 0 : _c.getKinds().length) || 0) + (this.options.marginX * 2);
+        const width = (((_a = this.options.nodeColumnWidth) !== null && _a !== void 0 ? _a : 0) + ((_b = this.options.nodeWidth) !== null && _b !== void 0 ? _b : 0)) * Math.max(1, ((_c = this.chartData) === null || _c === void 0 ? void 0 : _c.getKinds().length) || 0) + (this.options.marginX * 2);
         this.svgElement.setAttribute('height', this.calculatedHeight.toString());
         this.svgElement.setAttribute('width', width.toString());
     }
@@ -212,7 +214,7 @@ class SankeyChart {
             const y = this.options.marginY + overallY;
             const color = node.color || this.options.defaultNodeColor;
             let posX = positionX;
-            let rectPositionWidth = this.options.nodeColumnWith;
+            let rectPositionWidth = this.options.nodeColumnWidth;
             if (isSelected) {
                 this.selectedNodePositionY = y;
             }
@@ -251,7 +253,7 @@ class SankeyChart {
             const text = this.createSvgText('', [this.className.NODE_TITLE, isSelected ? this.className.SELECTED : '']);
             text.setAttribute("x", String(posX + this.options.marginX));
             text.setAttribute("y", y.toString());
-            const lines = this.createTextLines(node, this.options.nodeColumnWith - this.options.nodeWidth);
+            const lines = this.createTextLines(node, this.options.nodeColumnWidth - this.options.nodeWidth);
             lines.forEach((line, i) => {
                 const tspan = document.createElementNS(this.SVG_NS, "tspan");
                 tspan.setAttribute("x", String(posX + this.options.marginX));
@@ -469,11 +471,14 @@ class SankeyChart {
     }
     render() {
         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+        if (!this.chartData) {
+            return;
+        }
         const selectedNode = (_a = this.chartData) === null || _a === void 0 ? void 0 : _a.getSelectedNode();
         this.resetSvg();
         this.updateRelationWeights((_c = (_b = this.chartData) === null || _b === void 0 ? void 0 : _b.getNodes()) !== null && _c !== void 0 ? _c : [], (_e = (_d = this.chartData) === null || _d === void 0 ? void 0 : _d.getRelations()) !== null && _e !== void 0 ? _e : [], selectedNode);
         let column = 0;
-        const columnWidth = this.options.nodeColumnWith + this.options.nodeWidth;
+        const columnWidth = this.options.nodeColumnWidth + this.options.nodeWidth;
         const kinds = (_f = this.chartData) === null || _f === void 0 ? void 0 : _f.getKinds();
         this.selectedNodePositionY = -1;
         const svgNodes = document.createElementNS(this.SVG_NS, "g");

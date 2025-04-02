@@ -137,13 +137,11 @@ Below is an example of how to create and display a context menu using plain HTML
 <script>
   
   const sankeyChartData = new SankeyChartData(chartData, chartDataOptions);
-  sankeyChartData.selectNode({ kind: "product", name: "Product 3" });
-  sankeyChartData.selectNode(undefined);
 
   const svg = document.getElementById('sankey-chart-svg');
   const sankeyChart = new SankeyChart(svg);
   sankeyChart.setData(sankeyChartData);
-  sankeyChart.render();
+
 
   /* Add Context Menu */
   const contextMenu = document.getElementById("sankey-chart-contextMenu");
@@ -248,6 +246,77 @@ Below is an example of how to create and display a minimap using plain HTML, CSS
 </script>
 ```
 
+## Chart Data Options
+
+Each option lets you customize the behavior and appearance of your Sankey chart. You can adjust these parameters based on your data visualization needs.
+
+```json
+{
+  "kinds": [
+    {
+      "name": "consumer",
+      "title": "Consumers"
+    },
+    {
+      "name": "product",
+      "title": "Products",
+      "includeAlternative": true
+    },
+    {
+      "name": "proxy",
+      "title": "Proxies"
+    }
+  ],
+  "showRelatedKinds": true,
+  "showSameKindsOnNonSelected": false,
+  "selectAndFilter": true,
+  "tagColorMap": {
+    "abc": "#ff0000",
+    "xyz": "#00ff00"
+  }
+}
+```
+
+- `kinds`:
+  This is an array of objects. Each object represents a node type and contains:
+
+  - `name`: A unique identifier used internally (for example, "consumer", "product", "proxy").
+  - `title`: The display name used column name.
+  - `includeAlternative` (optional): When set to true (as seen for "product"), it instructs the library to consider alternative variations or representations for that node type when applicable.
+- `showRelatedKinds`:
+  A boolean flag that, when true, causes the chart to display nodes that are related to the currently selected node—even if they belong to a different kind. This can provide additional context around connections between node types. Only relevant when node is selected.
+
+- `showSameKindsOnNonSelected`: A boolean flag that controls whether nodes of the same kind should remain visible even if they are not selected. When set to false, only nodes that are selected or directly related will be emphasized. Only relevant when node is selected.
+
+- `selectAndFilter`: Another boolean flag that enables interactive behavior. When true, selecting a node automatically filters other nodes or links according to the selection criteria, highlighting only the parts of the chart that are related.
+
+- `tagColorMap`: An object that maps tag names to color codes. When nodes have tags (for example, "abc" or "xyz"), this map assigns specific colors to them. It helps in visually distinguishing nodes by tag in your chart.
+
+## Rendering Options
+
+```json
+{
+  "defaultColor": "black",
+  "renderKindAsColums": true,
+  "nodeColumnWidth": 250
+}
+```
+
+- `defaultColor`: Specifies the fallback color (here "black") used for nodes if no explicit color or tag-based color is provided.
+
+- `renderKindAsColums`: When set to true, nodes are rendered in separate columns based on their kind. This layout can help visually separate different types of nodes in the chart.
+
+- `nodeColumnWidth`: The set pixel width (here 250) for each node column when renderKindAsColums is enabled. This controls how much horizontal space each group of nodes will occupy.
+
 ## CDN
 
 https://cdn.jsdelivr.net/npm/@vii7/awesome-sankey-chart/
+
+## Release notes
+
+### v0.1.21 > v0.2.0
+
+### changes
+
+- options - typo fixed: `nodeColumnWith` > `nodeColumnWidth`
+- small improvements

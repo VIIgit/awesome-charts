@@ -124,7 +124,7 @@ class SankeyChartData {
       const tags = Object.keys(this.options.tagColorMap);
       this.nodes.forEach(node => {
         const hasSome = tags.some(tag => node.tags?.includes(tag));
-        if (hasSome) {
+        if (hasSome || node['color'] === this.options.defaultColor) {
           delete node['color'];
         }
       });
