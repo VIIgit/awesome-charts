@@ -1,6 +1,6 @@
 {
   "name": "@vii7/awesome-charts",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A collection of awesome charts modules SVG Charts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
