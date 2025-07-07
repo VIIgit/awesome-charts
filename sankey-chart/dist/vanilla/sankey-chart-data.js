@@ -11,7 +11,7 @@ class SankeyChartData {
         this.selectedNode = undefined;
         this.nodes = [];
         this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
-        this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
+        this.originalData = { name: data.name, color: data.color, nodes: (data.nodes || []).map(node => (Object.assign({}, node))), relations: data.relations || [] };
         this.allNodesLoaded = !partialData;
         this.nodesByKinds = {};
         this.title = undefined;
@@ -30,7 +30,6 @@ class SankeyChartData {
     initialize() {
         this.initializeSortRelations();
         this.initializeRelationsInfo();
-        this.sortNodes(this.nodes);
     }
     resetColors() {
         if (this.options.tagColorMap) {
@@ -139,7 +138,7 @@ class SankeyChartData {
             }
             this.nodesByKinds = groupByKind(this.nodes);
         }
-        this.sortNodes(this.nodes);
+        this.sortNodes();
         return this.selectedNode;
     }
     sortNodesAlpabetically(nodes) {
@@ -156,8 +155,7 @@ class SankeyChartData {
             }
         });
     }
-    sortNodes(nodes) {
-        const undefinedTag = (this.options.noTag || '') + this.options.noTagSuffixCharacter;
+    sortNodes() {
         const selectedNode = this.getSelectedNode();
         if (!selectedNode) {
             this.sortNodesAlpabetically(this.getNodes());
@@ -303,37 +301,18 @@ class SankeyChartData {
             node.color = this.getNodeTagColor(node);
             node.cardinality = cardinality;
             if (node.targetCount) {
-                node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
+                node.cardinality = { targetCount: node.targetCount, sameKindCount: 0 };
             }
             if (node.sourceCount) {
-                node['cardinality'] = Object.assign((_a = node['cardinality']) !== null && _a !== void 0 ? _a : {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
+                node.cardinality = Object.assign((_a = node.cardinality) !== null && _a !== void 0 ? _a : {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
             }
         });
-    }
-    getIndexByKind(kind, offset) {
-        var _a, _b;
-        const index = (_b = (_a = this.options) === null || _a === void 0 ? void 0 : _a.kinds) === null || _b === void 0 ? void 0 : _b.findIndex(obj => obj.name === kind);
-        if (index > -1) {
-            let newIndex = index + offset;
-            if (newIndex < 0 || newIndex >= this.options.kinds.length) {
-                return -1;
-            }
-            else {
-                return newIndex;
-            }
-        }
-        else {
-            return -1;
-        }
     }
     searchByName(node) {
         if (!node.kind || !node.name) {
             throw new Error('Filter criteria is empty');
         }
         return this.originalData.nodes.filter(item => item.kind === node.kind && item.name.includes(node.name));
-    }
-    findByName(name, dataArray) {
-        return dataArray.find(item => item.name === name);
     }
     filterDependencies(selectedNode, selectedKind) {
         let relatedRelations = [];

@@ -39,6 +39,7 @@
   "author": "VII.ch",
   "license": "MIT",
   "devDependencies": {
+    "happy-dom": "^18.0.1",
     "standard-version": "^9.5.0",
     "terser-webpack-plugin": "^5.3.10",
     "ts-loader": "^9.2.3",

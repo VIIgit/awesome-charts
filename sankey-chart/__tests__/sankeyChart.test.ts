@@ -1,4 +1,5 @@
-import { SankeyChartData, Node, Relation, SankeyChartDataOptions, SankeyChart, EventHandler } from '../src';
+import { DOMElement } from 'react';
+import { SankeyChartData, NodeProperties, Relation, SankeyChartDataOptions, SankeyChart, EventHandler } from '../src';
 
 import { normalizeHTML } from './normalizeHTML';
 
@@ -6,13 +7,20 @@ const { TextEncoder, TextDecoder } = require('util');
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 
-import { JSDOM } from 'jsdom';
-const dom = new JSDOM('<!DOCTYPE html><html><body><svg id="sankey-chart-svg" width="900" height="600"></svg></body></html>');
-const document = dom.window.document;
+// --- Happy DOM setup ---
+import { Window } from 'happy-dom';
+const document = window.document;
+global.window = window as any;
+global.document = document as any;
+global.HTMLElement = window.HTMLElement as any;
+global.SVGElement = window.SVGElement as any;
+global.SVGSVGElement = window.SVGSVGElement as any;
+global.SVGGElement = window.SVGGElement as any;
+global.SVGRectElement = window.SVGRectElement as any;
+global.SVGTextElement = window.SVGTextElement as any;
+global.SVGTSpanElement = window.SVGTSpanElement as any;
+global.SVGCircleElement = window.SVGCircleElement as any;
 
-/*
-global.window = dom.window;
-*/
 describe('SankeyChartData', () => {
 
   const mockData = {
@@ -56,11 +64,23 @@ describe('SankeyChartData', () => {
     `;
     expect(normalizeHTML("" + svg?.innerHTML)).toBe(normalizeHTML(expectedInnerHTML));
   });
-*/
-test('sankey - silly', () => {
+  */
+ 
+  test('sankey - render: should render nodes and relations into the SVG', () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    document.body.appendChild(svg);
 
-  expect(1).toBe(1);
-});
+    const chart = new SankeyChart(svg);
+    chart.setData(sankeyChartData);
+
+    // Check that SVG contains expected elements
+    expect(svg.querySelectorAll('g').length).toBe(7); // At least one group
+    expect(svg.querySelectorAll('rect').length).toBe(4); // At least one rect for nodes
+    expect(svg.querySelectorAll('path').length).toBe(1); // At least one path for relations
+
+    // Clean up
+    document.body.removeChild(svg);
+  });
 });
 
 

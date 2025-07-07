@@ -1,5 +1,5 @@
 import { normalizeHTML } from './normalizeHTML';
-import { SankeyChartData, Node, Relation, SankeyChartDataOptions, BasicNode, IncludeKind } from '../src';
+import { SankeyChartData,  NodeProperties, Relation, SankeyChartDataOptions, Node, IncludeKind } from '../src';
 
 test('createSankeyChart should work correctly', () => {
   const element = document.createElement('div');
@@ -40,7 +40,7 @@ describe('SankeyChartData', () => {
   });
 
   test('should initialize correctly', () => {
-    expect(sankeyChartData.originalData).toEqual(mockData);
+    expect(sankeyChartData.originalData).toMatchObject(mockData);
     expect(sankeyChartData.options).toMatchObject(mockOptions);
     expect(sankeyChartData.originalData.nodes.length).toEqual(2);
 
@@ -85,7 +85,7 @@ describe('SankeyChartData', () => {
       name: string;
     }
     sankeyChartData.appendData({ nodes: mockData.nodes, relations: mockData.relations });
-    const node: Node = { kind: 'type1', name: 'Node1' };
+    const node: NodeProperties = { kind: 'type1', name: 'Node1' };
     sankeyChartData.selectNode(node);
     expect(sankeyChartData.getSelectedNode()).toEqual(expect.objectContaining(node));
   });
@@ -1622,6 +1622,6 @@ describe('init SankeyChartData and append data', () => {
   });
 });
 
-const mapKindAndName = function (nodes: Node[]): BasicNode[] {
+const mapKindAndName = function (nodes: Node[]): Node[] {
   return nodes.map(node => { return { name: node.name, kind: node.kind } })
 }

@@ -3,7 +3,7 @@ import  SankeyChart from './sankey-chart';
 import { EventHandler } from './event-handler';
 import { Minimap } from './minimap';
 
-export { SankeyChartData, Node, Relation, SankeyChartDataOptions, BasicNode, IncludeKind, Magnitude } from './sankey-chart-data';
+export { SankeyChartData, NodeProperties, Relation, SankeyChartDataOptions, Node, IncludeKind, Magnitude } from './sankey-chart-data';
 export { EventHandler }
 export { SankeyChart };
 export { Minimap };

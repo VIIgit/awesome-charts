@@ -1,18 +1,20 @@
-interface Cardinality {
-  sourceCount?: number;
-  targetCount?: number;
-  sameKindCount?: number;
-}
-
 interface Node {
   kind: string;
   name: string;
   title?: string;
   subtitle?: string;
   color?: string;
+  tags?: string[];
+}
+
+interface Cardinality {
+  sourceCount?: number;
+  targetCount?: number;
+  sameKindCount?: number;
+}
+interface NodeProperties extends Node {
   targetCount?: number;
   sourceCount?: number;
-  tags?: string[];
   placeHolder?: boolean;
   cardinality?: Cardinality;
   selectedCardinality?: Cardinality;
@@ -21,26 +23,8 @@ interface Node {
   hasRelationsOfSameKinds?: boolean;
 }
 
-interface Data {
-  subtitle?: string;
-  title?: string;
-  description?: string;
-  targetCount?: number;
-  sourceCount?: number;
-  nodes?: Data[];
-  color?: string;
-  relations?: Relation[];
-  magnitudes?: Magnitude[];
-}
-
-
-interface BasicNode {
-  kind: string;
-  name: string;
-}
-
 interface Magnitude {
-  nodes: BasicNode[];
+  nodes: Node[];
   value: number; // total
   decomposition: { [key: string]: number }; // the sum MUST not exceed the value
 }
@@ -82,21 +66,25 @@ interface KindMeta extends Kind {
 }
 
 class SankeyChartData {
-  selectedNode?: Node;
-  nodes: Node[];
+  selectedNode?: NodeProperties;
+  nodes: NodeProperties[];
   dependencies: { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean; };
-  originalData: { name: string; color?: string; nodes: Node[]; relations: Relation[] };
+  originalData: { name: string; color?: string; nodes: NodeProperties[]; relations: Relation[] };
   allNodesLoaded: boolean;
-  nodesByKinds: { [key: string]: Node[] };
+  nodesByKinds: { [key: string]: NodeProperties[] };
   title?: KindMeta;
   options: SankeyChartDataOptions;
 
-  constructor(data: { name: string; color?: string; nodes?: Node[]; relations?: Relation[] }, options: SankeyChartDataOptions, partialData: boolean = false) {
+  constructor(
+    data: { name: string; color?: string; nodes?: Node[]; relations?: Relation[] }, // <-- nodes?: Node[]
+    options: SankeyChartDataOptions,
+    partialData: boolean = false
+  ) {
     this.selectedNode = undefined;
     this.nodes = [];
     this.dependencies = { relations: [], hasRelatedSourceOfOtherKinds: false };
 
-    this.originalData = { name: data.name, color: data.color, nodes: data.nodes || [], relations: data.relations || [] };
+    this.originalData = { name: data.name, color: data.color, nodes: (data.nodes || []).map(node => ({ ...node })), relations: data.relations || [] };
     this.allNodesLoaded = !partialData;
     this.nodesByKinds = {};
     this.title = undefined;
@@ -116,7 +104,6 @@ class SankeyChartData {
   initialize() {
     this.initializeSortRelations();
     this.initializeRelationsInfo();
-    this.sortNodes(this.nodes);
   }
 
   resetColors() {
@@ -149,11 +136,11 @@ class SankeyChartData {
     this.selectNode(selectedNode);
   }
 
-  getNodes(): Node[] {
+  getNodes(): NodeProperties[] {
     return this.nodes || [];
   }
 
-  getNodesByKind(kind: string): Node[] {
+  getNodesByKind(kind: string): NodeProperties[] {
     return this.nodesByKinds[kind] ?? [];
   }
 
@@ -177,13 +164,13 @@ class SankeyChartData {
     this.title = title ? { title: title.title, name: title.name, color: title.color } : undefined;
   }
 
-  getSelectedNode(): Node | undefined {
+  getSelectedNode(): NodeProperties | undefined {
     return this.selectedNode;
   }
 
-  selectNode(node?: Node): Node | undefined {
+  selectNode(node?: Node): NodeProperties | undefined {
     const groupByKind = (nodes: Node[]) => {
-      const dataByKinds: { [key: string]: Node[] } = {};
+      const dataByKinds: { [key: string]: NodeProperties[] } = {};
       nodes.forEach(node => {
         if (!dataByKinds[node.kind]) {
           dataByKinds[node.kind] = [];
@@ -229,11 +216,11 @@ class SankeyChartData {
       }
       this.nodesByKinds = groupByKind(this.nodes);
     }
-    this.sortNodes(this.nodes);
+    this.sortNodes();
     return this.selectedNode;
   }
 
-  sortNodesAlpabetically(nodes: Node[]) {
+  private sortNodesAlpabetically(nodes: NodeProperties[]) {
     const undefinedTag = (this.options.noTag || '') + this.options.noTagSuffixCharacter;
     nodes.sort((a, b) => {
       if (a.name === undefinedTag && b.name !== undefinedTag) {
@@ -246,15 +233,14 @@ class SankeyChartData {
     });
   }
 
-  sortNodes(nodes: Node[]) {
-    const undefinedTag = (this.options.noTag || '') + this.options.noTagSuffixCharacter;
+  private sortNodes() {
     const selectedNode = this.getSelectedNode();
     if (!selectedNode) {
       this.sortNodesAlpabetically(this.getNodes());
       return
     }
 
-    let previousKinds: Node[] = [];
+    let previousKinds: NodeProperties[] = [];
 
     const startIndex = this.options.kinds.findIndex(k => k.name === selectedNode?.kind);
     for (let index = startIndex; index < this.options.kinds.length; index++) {
@@ -280,7 +266,7 @@ class SankeyChartData {
     this.sortRelations();
   }
 
-  sortNodesOfKind(kind: Kind, nodes: Node[], previousKinds: Node[], selectedNode: Node) {
+  private sortNodesOfKind(kind: Kind, nodes: NodeProperties[], previousKinds: NodeProperties[], selectedNode: NodeProperties) {
     if (kind.name === selectedNode?.kind) {
 
       const relations = this.getRelations();
@@ -290,7 +276,7 @@ class SankeyChartData {
       nodes.sort((a, b) => {
         // Define group:
         // 1: selected node, 2: nodes in relatedOfSameKindNodes, 3: rest of the nodes
-        const group = (node: Node): number => {
+        const group = (node: NodeProperties): number => {
           if (dependenciesOfSameKindNodes.length > 0) {
             if (dependenciesOfSameKindNodes.includes(node.name)) return 1;
             if (node.name === selectedNode.name) return 2;
@@ -327,7 +313,7 @@ class SankeyChartData {
     }
   };
 
-  sortRelations() {
+  private sortRelations() {
     const combinedNodes: { [key: string]: number } = {};
     const shift = 100000;
     Object.keys(this.nodesByKinds).forEach(kind => {
@@ -357,7 +343,7 @@ class SankeyChartData {
 
   }
 
-  initializeSortRelations() {
+  private initializeSortRelations() {
     this.originalData.relations?.sort((a, b) => {
       if (a.source.kind !== b.source.kind) {
         return a.source.kind.localeCompare(b.source.kind);
@@ -376,7 +362,7 @@ class SankeyChartData {
     });
   }
 
-  initializeRelationsInfo() {
+  private initializeRelationsInfo() {
     const summary: { [key: string]: { sourceCount: number; targetCount: number; sameKindCount: number } } = {};
     this.originalData.relations?.forEach((link) => {
       const key = link.source.kind + '::' + link.source.name;
@@ -399,26 +385,12 @@ class SankeyChartData {
       node.color = this.getNodeTagColor(node);
       node.cardinality = cardinality;
       if (node.targetCount) {
-        node['cardinality'] = { targetCount: node.targetCount, sameKindCount: 0 };
+        node.cardinality = { targetCount: node.targetCount, sameKindCount: 0 };
       }
       if (node.sourceCount) {
-        node['cardinality'] = Object.assign(node['cardinality'] ?? {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
+        node.cardinality = Object.assign(node.cardinality ?? {}, { sourceCount: node.sourceCount, sameKindCount: 0 });
       }
     });
-  }
-
-  getIndexByKind(kind: string, offset: number): number {
-    const index = this.options?.kinds?.findIndex(obj => obj.name === kind);
-    if (index > -1) {
-      let newIndex = index + offset;
-      if (newIndex < 0 || newIndex >= this.options.kinds.length) {
-        return -1;
-      } else {
-        return newIndex;
-      }
-    } else {
-      return -1;
-    }
   }
 
   getNodeTagColor = (node: Node): string | undefined => {
@@ -426,18 +398,14 @@ class SankeyChartData {
     return node.color || color;
   };
 
-  searchByName(node: { kind: string; name: string }): Node[] {
+  searchByName(node: { kind: string; name: string }): NodeProperties[] {
     if (!node.kind || !node.name) {
       throw new Error('Filter criteria is empty');
     }
     return this.originalData.nodes.filter(item => item.kind === node.kind && item.name.includes(node.name));
   }
 
-  findByName(name: string, dataArray: Node[]): Node | undefined {
-    return dataArray.find(item => item.name === name);
-  }
-
-  filterDependencies(selectedNode: Node, selectedKind?: KindMeta): { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean } {
+  filterDependencies(selectedNode: NodeProperties, selectedKind?: KindMeta): { relations: Relation[]; hasRelatedSourceOfOtherKinds: boolean } {
     let relatedRelations: Relation[] = [];
     const kindNames = this.options.kinds.map(k => k.name); // this.getKinds().map(kind => kind.name);
 
@@ -495,7 +463,7 @@ class SankeyChartData {
     });
   }
 
-  filterNodes(relations: Relation[]): Node[] {
+  filterNodes(relations: Relation[]): NodeProperties[] {
     const relationKeys = relations.flatMap(relation => `${relation.target.kind}::${relation.target.name}`);
     const relationSourceKeys = relations.flatMap(relation => `${relation.source.kind}::${relation.source.name}`);
     if (this.selectedNode) {
@@ -506,7 +474,7 @@ class SankeyChartData {
     return this.originalData.nodes.filter(node => distinctKeys.includes(`${node.kind}::${node.name}`));
   }
 
-  mergeData(originData: { nodes: Node[]; relations: Relation[] }, appendData: { nodes: Node[]; relations: Relation[] }): { nodes: Node[]; relations: Relation[] } {
+  private mergeData(originData: { nodes: NodeProperties[]; relations: Relation[] }, appendData: { nodes: NodeProperties[]; relations: Relation[] }): { nodes: NodeProperties[]; relations: Relation[] } {
     appendData.nodes.forEach(node => {
       const index = originData.nodes.findIndex(existingNode => existingNode.kind === node.kind && existingNode.name === node.name);
       if (index !== -1) {
@@ -543,4 +511,4 @@ class SankeyChartData {
     return originData;
   }
 }
-export { SankeyChartData, Node, Relation, Magnitude, SankeyChartDataOptions, Kind, Analytics, BasicNode, IncludeKind, Cardinality };
+export { SankeyChartData, NodeProperties, Relation, Magnitude, SankeyChartDataOptions, Kind, Analytics, Node, IncludeKind, Cardinality };
